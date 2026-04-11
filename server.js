@@ -1,27 +1,16 @@
-import { useEffect, useState } from 'react'
+const express = require('express');
+const cors = require('cors');
+const app = express();
 
-function App() {
-  const [serverMessage, setServerMessage] = useState('서버 연결 중...')
+app.use(cors());
+app.use(express.json());
 
-  useEffect(() => {
-    // 아까 만든 서버 주소로 요청을 보냅니다
-    fetch('http://localhost:5000/api/test')
-      .then(res => res.json())
-      .then(data => {
-        setServerMessage(data.result) // "서버가 정상적으로 응답하고 있습니다!" 가 담깁니다
-      })
-      .catch(err => {
-        console.error("에러 발생:", err)
-        setServerMessage('서버 연결 실패 ㅠㅠ')
-      })
-  }, [])
+// 리액트가 이 주소로 요청을 보낼 거예요
+app.get('/api/test', (req, res) => {
+  res.json({ result: "서버가 정상적으로 응답하고 있습니다!" });
+});
 
-  return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h1>🦊 구미호 프로젝트</h1>
-      <p>서버 응답 결과: <strong>{serverMessage}</strong></p>
-    </div>
-  )
-}
-
-export default App
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`백엔드 서버 오픈: http://localhost:${PORT}`);
+});
