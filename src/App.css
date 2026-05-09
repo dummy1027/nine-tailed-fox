@@ -45,7 +45,14 @@
   color: white;
   border: none;
   cursor: pointer;
-  transition: opacity 0.3s;
+  border-radius: 50px;
+  font-weight: bold;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.paradox-bg:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 74, 173, 0.4);
 }
 
 /* 4. 기존에 주셨던 구조 코드 */
