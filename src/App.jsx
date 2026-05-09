@@ -137,7 +137,7 @@ function App() {
     <Router>
       <nav className="nav-bar">
         <Link to="/" className="logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-          <img src={logo} alt="Paradox Logo" style={{ height: '65px', objectFit: 'contain', transform: 'translateY(10px)', mixBlendMode: 'multiply' }} />
+          <img src={logo} alt="Paradox Logo" className="logo-img" />
         </Link>
         <div className="nav-menu">
           <Link to="/basics" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>C언어 기초</Link>

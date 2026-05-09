@@ -128,3 +128,28 @@
   font-weight: bold;
   cursor: pointer;
 }
+
+/* 5. 네비게이션 바 정렬 */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  padding: 20px 40px;
+  margin-bottom: 20px;
+}
+
+.nav-bar .logo {
+  flex: 1;
+}
+
+.nav-menu {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-5px);
+}
+
+.nav-bar::after {
+  content: "";
+  flex: 1;
+}
