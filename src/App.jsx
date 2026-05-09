@@ -125,7 +125,7 @@ function App() {
   const [message, setMessage] = useState("Loading...");
 
   useEffect(() => {
-    fetch('http://localhost:5173/api/test')
+    fetch('http://localhost:5000/api/test')
       .then(res => res.json())
       .then(data => setMessage(data.result))
       .catch(err => setMessage("서버 연결 필요 🦊"));
