@@ -1,62 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import './App.css';
+// ... 상단 import 부분은 그대로 유지 ...
 
-// --- 1. 메인 페이지 컴포넌트 ---
-const Home = ({ message }) => {
-  const navigate = useNavigate();
-
-  return (
-    <div className="container">
-      {/* 히어로 섹션 */}
-      <section className="hero-section">
-        <div className="hero-content" style={{textAlign: 'center'}}>
-          <h1 className="text-gradient" style={{fontSize: '60px', marginBottom: '10px'}}>Paradox</h1>
-          <p style={{fontSize: '18px', color: '#393c41'}}>가장 강력한 언어로 배우는 논리적 사고의 정점</p>
-          <div style={{marginTop: '20px', color: '#5c5e62'}}>{message}</div>
-        </div>
-        <div className="button-group">
-          <button className="btn paradox-bg">무료로 시작하기</button>
-          <button className="btn btn-secondary">커리큘럼 보기</button>
-        </div>
-      </section>
-      
-      {/* 특징 섹션 */}
-      <section style={{padding: '100px 40px', backgroundColor: '#ffffff', textAlign: 'center'}}>
-        <h2 style={{fontSize: '32px'}}>왜 C언어인가요?</h2>
-        <div style={{display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '50px'}}>
-          <div style={{width: '250px'}}>
-            <h3 className="text-gradient">Performance</h3>
-            <p>하드웨어의 성능을 최대로 끌어내는 로우 레벨 제어</p>
-          </div>
-          <div style={{width: '250px'}}>
-            <h3 className="text-gradient">Fundamentals</h3>
-            <p>메모리 구조부터 배우는 탄탄한 프로그래밍 기초</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 커뮤니티 카드 (클릭 시 이동) */}
-      <section className="community-section">
-        <div className="community-card" onClick={() => navigate('/community')}>
-          <div className="community-content">
-            <span className="tag">Community</span>
-            <h2>사람들의 Paradox 프로젝트</h2>
-            <p>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
-            <button className="paradox-button">커뮤니티 입장하기</button>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-// --- 2. 커뮤니티 페이지 컴포넌트 (새로 만든 페이지) ---
-const Community = () => {
+// --- 3. 문제집 페이지 컴포넌트 (새로 추가) ---
+const Workbook = () => {
   return (
     <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
-      <h1 className="text-gradient">Community</h1>
-      <p style={{color: '#8e8e93', marginTop: '20px'}}>준비 중인 커뮤니티 공간입니다. 곧 여러분의 프로젝트를 공유할 수 있어요!</p>
+      <h1 className="text-gradient">Workbook</h1>
+      <p style={{color: '#8e8e93', marginTop: '20px'}}>
+        C언어 마스터를 위한 엄선된 문제집입니다. 곧 공개됩니다!
+      </p>
       <Link to="/" style={{display: 'inline-block', marginTop: '40px', color: 'var(--tesla-blue)'}}>
         ← 메인으로 돌아가기
       </Link>
@@ -64,7 +15,6 @@ const Community = () => {
   );
 };
 
-// --- 3. 전체 앱 설정 (라우팅) ---
 function App() {
   const [message, setMessage] = useState("Loading...");
 
@@ -82,12 +32,16 @@ function App() {
         <div className="nav-menu">
           <Link to="/" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>C언어 기초</Link>
           <Link to="/community" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>커뮤니티</Link>
+          {/* 추가된 문제집 메뉴 */}
+          <Link to="/workbook" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>문제집</Link>
         </div>
       </nav>
 
       <Routes>
         <Route path="/" element={<Home message={message} />} />
         <Route path="/community" element={<Community />} />
+        {/* 추가된 문제집 경로 */}
+        <Route path="/workbook" element={<Workbook />} />
       </Routes>
     </Router>
   );
