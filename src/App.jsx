@@ -37,24 +37,25 @@ const Minesweeper = () => {
 };
 
 // --- 1. 메인 페이지 컴포넌트 (레이아웃 대공사) ---
-// --- 파트 2: 메인 페이지 (Home) ---
+// --- 파트 2: 메인 페이지 (Home - 커뮤니티 카드 포함 버전) ---
 const Home = ({ message }) => {
   const navigate = useNavigate();
 
   return (
     <div className="container" style={{ position: 'relative' }}>
+      {/* 1. 히어로 섹션 (지뢰찾기 + Paradox) */}
       <section className="hero-section" style={{
         display: 'flex', 
         flexDirection: 'column',
         alignItems: 'center', 
         padding: '100px 0', 
-        position: 'relative' // 지뢰찾기가 얘를 기준으로 왼쪽으로 가요!
+        position: 'relative'
       }}>
         
-        {/* 지뢰찾기 소환! 왼쪽 밖으로 나갑니다 */}
+        {/* 지뢰찾기는 사용자님이 찍어주신 왼쪽 빈 공간에! */}
         <Minesweeper />
 
-        {/* 주인공 Paradox 등장 */}
+        {/* 중앙 Paradox 텍스트 영역 */}
         <div className="hero-content" style={{ textAlign: 'center', zIndex: 5 }}>
           <h1 className="text-gradient" style={{fontSize: '80px', marginBottom: '15px', fontWeight: '800'}}>
             Paradox
@@ -68,11 +69,37 @@ const Home = ({ message }) => {
           </div>
         </div>
       </section>
-      
-      {/* 특징 및 커뮤니티 섹션 (아래쪽은 예전이랑 똑같아요!) */}
+
+      {/* 2. 특징 섹션 (간단 설명) */}
+      <section style={{padding: '80px 40px', backgroundColor: '#ffffff', textAlign: 'center'}}>
+        <h2 style={{fontSize: '32px', marginBottom: '50px'}}>왜 C언어인가요?</h2>
+        <div style={{display: 'flex', justifyContent: 'center', gap: '60px'}}>
+          <div style={{width: '250px'}}><h3 className="text-gradient">Performance</h3><p>최고의 속도와 제어력</p></div>
+          <div style={{width: '250px'}}><h3 className="text-gradient">Fundamentals</h3><p>프로그래밍의 뿌리</p></div>
+        </div>
+      </section>
+
+      {/* 3. ★ 다시 돌아온 커뮤니티 바로가기 ★ */}
+      <section className="community-section" style={{ paddingBottom: '100px' }}>
+        <div 
+          className="community-card" 
+          onClick={() => navigate('/community')}
+          style={{ cursor: 'pointer', margin: '0 auto', maxWidth: '900px' }}
+        >
+          <div className="community-content" style={{ padding: '60px', textAlign: 'center' }}>
+            <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>COMMUNITY</span>
+            <h2 style={{ fontSize: '36px', marginTop: '10px' }}>사람들의 Paradox 프로젝트</h2>
+            <p style={{ color: '#8e8e93', marginTop: '15px', fontSize: '18px' }}>
+              직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.
+            </p>
+            <button className="paradox-button" style={{ marginTop: '30px' }}>커뮤니티 입장하기</button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
+
 // --- 2. C언어 기초 페이지 (새로 추가) ---
 const Basics = () => {
   return (
