@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 import CPreview from './CPreview';
+import logo from './assets/logo.png';
 
 // --- 파트 1: 왼쪽 외곽 배치 지뢰찾기 (위치 고정) ---
 const Minesweeper = () => {
@@ -135,7 +136,9 @@ function App() {
   return (
     <Router>
       <nav className="nav-bar">
-        <Link to="/" className="logo" style={{textDecoration: 'none'}}>NINE-TAILED FOX</Link>
+        <Link to="/" className="logo" style={{textDecoration: 'none', display: 'flex', alignItems: 'center'}}>
+          <img src={logo} alt="Paradox Logo" style={{ height: '65px', objectFit: 'contain' }} />
+        </Link>
         <div className="nav-menu">
           <Link to="/basics" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>C언어 기초</Link>
           <Link to="/community" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>커뮤니티</Link>
