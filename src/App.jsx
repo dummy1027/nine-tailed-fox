@@ -2,33 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 
-// --- 파트 1: 왼쪽 여백에 고정될 지뢰찾기 ---
+// --- 파트 1: 지뢰찾기 컴포넌트 ---
 const Minesweeper = () => {
   return (
     <div className="minesweeper-box" style={{
-      position: 'absolute', 
-      left: '40px', // 화면 왼쪽 끝에서 적당히 띄움
-      top: '50%',
-      transform: 'translateY(-50%)',
-      width: '280px', 
-      height: '340px', 
-      backgroundColor: '#1c1c1e', 
-      borderRadius: '25px', 
-      border: '1px solid #333',
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      color: '#8e8e93', 
-      boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-      zIndex: 10
+      width: '320px', height: '380px', backgroundColor: '#1c1c1e', 
+      borderRadius: '25px', border: '1px solid #333',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      color: '#8e8e93', boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
     }}>
-      <div style={{fontSize: '30px', marginBottom: '10px'}}>💣</div>
-      <h3 style={{color: 'white', margin: '5px 0', fontSize: '18px'}}>Minesweeper</h3>
-      <p style={{fontSize: '11px', marginBottom: '15px'}}>논리력 테스트 존</p>
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px'}}>
+      <div style={{fontSize: '40px', marginBottom: '10px'}}>💣</div>
+      <h3 style={{color: 'white', margin: '5px 0'}}>Minesweeper</h3>
+      <p style={{fontSize: '12px', marginBottom: '20px'}}>논리력 테스트 존</p>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px'}}>
         {[...Array(16)].map((_, i) => (
-          <div key={i} style={{width: '30px', height: '30px', backgroundColor: '#2c2c2e', borderRadius: '6px'}}></div>
+          <div key={i} style={{width: '35px', height: '35px', backgroundColor: '#2c2c2e', borderRadius: '8px'}}></div>
         ))}
       </div>
     </div>
@@ -40,61 +28,27 @@ const Home = ({ message }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="container" style={{ position: 'relative', overflow: 'hidden' }}>
+    <div className="container">
       <section className="hero-section" style={{
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center', 
-        padding: '100px 0', 
-        position: 'relative',
-        minHeight: '85vh'
+        display: 'flex', alignItems: 'center', padding: '100px 5%', minHeight: '70vh'
       }}>
-        
-        {/* 왼쪽의 지뢰찾기 */}
-        <Minesweeper />
-
-        {/* 중앙 콘텐츠 (Paradox + C언어 기초 코드 미리보기) */}
-        <div className="hero-content" style={{ textAlign: 'center', zIndex: 5 }}>
-          <h1 className="text-gradient" style={{fontSize: '80px', marginBottom: '10px', fontWeight: '800'}}>
+        <div style={{ flex: '1', display: 'flex', justifyContent: 'center' }}>
+          <Minesweeper />
+        </div>
+        <div style={{ flex: '1.5', textAlign: 'left', paddingLeft: '50px' }}>
+          <h1 className="text-gradient" style={{fontSize: '80px', marginBottom: '15px', fontWeight: '800'}}>
             Paradox
           </h1>
-          <p style={{fontSize: '22px', color: '#393c41', maxWidth: '550px', margin: '0 auto 30px', lineHeight: '1.4'}}>
+          <p style={{fontSize: '22px', color: '#393c41', maxWidth: '500px', lineHeight: '1.4'}}>
             가장 강력한 언어로 배우는<br />논리적 사고의 정점
           </p>
-
-          {/* ★ 다시 돌아온 C언어 기초 코드 박스 ★ */}
-          <div style={{
-            backgroundColor: '#111', 
-            padding: '25px', 
-            borderRadius: '15px', 
-            textAlign: 'left', 
-            width: '450px', 
-            margin: '0 auto',
-            border: '1px solid #222',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-          }}>
-            <div style={{display: 'flex', gap: '6px', marginBottom: '15px'}}>
-              <div style={{width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff5f56'}}></div>
-              <div style={{width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ffbd2e'}}></div>
-              <div style={{width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#27c93f'}}></div>
-            </div>
-            <code style={{color: '#d1d1d1', fontSize: '14px', lineHeight: '1.6'}}>
-              <span style={{color: '#c678dd'}}>#include</span> <span style={{color: '#98c379'}}>&lt;stdio.h&gt;</span><br/><br/>
-              <span style={{color: '#61afef'}}>int</span> <span style={{color: '#e5c07b'}}>main</span>() &#123;<br/>
-              &nbsp;&nbsp;<span style={{color: '#e06c75'}}>printf</span>(<span style={{color: '#98c379'}}>"Hello, Paradox!"</span>);<br/>
-              &nbsp;&nbsp;<span style={{color: '#c678dd'}}>return</span> <span style={{color: '#d19a66'}}>0</span>;<br/>
-              &#125;
-            </code>
-          </div>
-
-          <div style={{marginTop: '30px', color: '#5c5e62'}}>{message}</div>
-          <div className="button-group" style={{marginTop: '40px', justifyContent: 'center'}}>
+          <div style={{marginTop: '25px', color: '#5c5e62'}}>{message}</div>
+          <div className="button-group" style={{marginTop: '40px', justifyContent: 'flex-start'}}>
             <button className="btn paradox-bg" style={{padding: '15px 40px', fontSize: '18px'}}>무료로 시작하기</button>
           </div>
         </div>
       </section>
 
-      {/* 커뮤니티 카드 */}
       <section className="community-section" style={{ paddingBottom: '100px' }}>
         <div className="community-card" onClick={() => navigate('/community')} style={{ cursor: 'pointer', margin: '0 auto', maxWidth: '900px' }}>
           <div className="community-content" style={{ padding: '60px', textAlign: 'center' }}>
@@ -109,28 +63,56 @@ const Home = ({ message }) => {
   );
 };
 
-// --- 파트 3: 서브 페이지 컴포넌트 ---
+// --- 파트 3: 서브 페이지들 (줄 바꿈 돌아가기 버튼 적용) ---
+
+// 1. C언어 기초 페이지
+const Basics = () => {
+  return (
+    <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
+      <h1 className="text-gradient" style={{fontSize: '50px'}}>C언어 기초</h1>
+      <div style={{maxWidth: '800px', margin: '40px auto', textAlign: 'left', backgroundColor: '#1c1c1e', padding: '40px', borderRadius: '20px', color: 'white'}}>
+        <h3>1. Hello, World!</h3>
+        <p style={{color: '#8e8e93'}}>모든 프로그래밍의 시작은 출력부터입니다.</p>
+        <code style={{display: 'block', backgroundColor: '#000', padding: '20px', borderRadius: '10px', marginTop: '10px', color: '#cb6ce6'}}>
+          printf("Hello, Paradox!");
+        </code>
+      </div>
+      <div style={{marginTop: '60px'}}>
+        <Link to="/" style={{color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500'}}>
+          ← 돌아가기
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+// 2. 커뮤니티 페이지
 const Community = () => (
   <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
     <h1 className="text-gradient" style={{fontSize: '50px'}}>Community</h1>
     <p style={{color: '#8e8e93', marginTop: '20px', fontSize: '18px'}}>준비 중인 커뮤니티 공간입니다. 곧 공개됩니다!</p>
     <div style={{marginTop: '60px'}}>
-      <Link to="/" style={{color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500'}}>← 돌아가기</Link>
+      <Link to="/" style={{color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500'}}>
+        ← 돌아가기
+      </Link>
     </div>
   </div>
 );
 
+// 3. 문제집 페이지
 const Workbook = () => (
   <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
     <h1 className="text-gradient" style={{fontSize: '50px'}}>Workbook</h1>
     <p style={{color: '#8e8e93', marginTop: '20px', fontSize: '18px'}}>C언어 마스터를 위한 엄선된 문제집입니다.</p>
     <div style={{marginTop: '60px'}}>
-      <Link to="/" style={{color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500'}}>← 돌아가기</Link>
+      <Link to="/" style={{color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500'}}>
+        ← 돌아가기
+      </Link>
     </div>
   </div>
 );
 
-// --- 파트 4: 앱 설정 ---
+// --- 파트 4: 앱 설정 (라우팅 설정) ---
 function App() {
   const [message, setMessage] = useState("Loading...");
 
@@ -146,6 +128,8 @@ function App() {
       <nav className="nav-bar">
         <Link to="/" className="logo" style={{textDecoration: 'none'}}>NINE-TAILED FOX</Link>
         <div className="nav-menu">
+          {/* C언어 기초 메뉴 다시 추가! */}
+          <Link to="/basics" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>C언어 기초</Link>
           <Link to="/community" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>커뮤니티</Link>
           <Link to="/workbook" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>문제집</Link>
         </div>
@@ -153,6 +137,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<Home message={message} />} />
+        <Route path="/basics" element={<Basics />} />
         <Route path="/community" element={<Community />} />
         <Route path="/workbook" element={<Workbook />} />
       </Routes>
