@@ -61,7 +61,7 @@ const Home = ({ message }) => {
           </p>
           <div style={{marginTop: '25px', color: '#5c5e62'}}>{message}</div>
           <div className="button-group" style={{marginTop: '40px', justifyContent: 'center'}}>
-            <button className="btn paradox-bg" style={{padding: '15px 40px', fontSize: '18px'}}>무료로 시작하기</button>
+            <button className="btn paradox-bg" style={{padding: '15px 40px', fontSize: '18px'}}>C언어 맛보기</button>
           </div>
         </div>
       </section>
