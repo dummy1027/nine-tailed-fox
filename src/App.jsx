@@ -2,28 +2,52 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 
+// --- 지뢰찾기 미니 컴포넌트 ---
+const Minesweeper = () => {
+  return (
+    <div style={{
+      width: '300px', height: '300px', backgroundColor: '#1c1c1e', 
+      borderRadius: '20px', border: '1px solid #333',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      color: '#8e8e93', fontSize: '14px'
+    }}>
+      <div style={{fontSize: '40px', marginBottom: '10px'}}>💣</div>
+      <p>Minesweeper</p>
+      <p style={{fontSize: '12px'}}>(논리력 테스트 준비 중)</p>
+    </div>
+  );
+};
+
 // --- 1. 메인 페이지 컴포넌트 ---
 const Home = ({ message }) => {
   const navigate = useNavigate();
 
   return (
     <div className="container">
-      {/* 히어로 섹션 */}
-      <section className="hero-section">
-        <div className="hero-content" style={{textAlign: 'center'}}>
-          <h1 className="text-gradient" style={{fontSize: '60px', marginBottom: '10px'}}>Paradox</h1>
-          <p style={{fontSize: '18px', color: '#393c41'}}>가장 강력한 언어로 배우는 논리적 사고의 정점</p>
-          <div style={{marginTop: '20px', color: '#5c5e62'}}>{message}</div>
+      {/* 히어로 섹션: 지뢰찾기(좌) + 텍스트(우) */}
+      <section className="hero-section" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '60px', padding: '100px 20px'
+      }}>
+        <div className="hero-left">
+          <Minesweeper />
         </div>
-        <div className="button-group">
-          <button className="btn paradox-bg">무료로 시작하기</button>
-          <button className="btn btn-secondary">커리큘럼 보기</button>
+
+        <div className="hero-right" style={{textAlign: 'left'}}>
+          <h1 className="text-gradient" style={{fontSize: '60px', marginBottom: '10px'}}>Paradox</h1>
+          <p style={{fontSize: '18px', color: '#393c41', maxWidth: '400px'}}>
+            가장 강력한 언어로 배우는 논리적 사고의 정점
+          </p>
+          <div style={{marginTop: '20px', color: '#5c5e62'}}>{message}</div>
+          
+          <div className="button-group" style={{marginTop: '30px', justifyContent: 'flex-start'}}>
+            <button className="btn paradox-bg">무료로 시작하기</button>
+          </div>
         </div>
       </section>
       
       {/* 특징 섹션 */}
       <section style={{padding: '100px 40px', backgroundColor: '#ffffff', textAlign: 'center'}}>
-        <h2 style={{fontSize: '32px'}}>왜 C언어인가요?</h2>
+        <h2 style={{fontSize: '32px', fontWeight: '500'}}>왜 C언어인가요?</h2>
         <div style={{display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '50px'}}>
           <div style={{width: '250px'}}>
             <h3 className="text-gradient">Performance</h3>
@@ -36,7 +60,7 @@ const Home = ({ message }) => {
         </div>
       </section>
 
-      {/* 커뮤니티 카드 */}
+      {/* 커뮤니티 카드 섹션 */}
       <section className="community-section">
         <div className="community-card" onClick={() => navigate('/community')}>
           <div className="community-content">
