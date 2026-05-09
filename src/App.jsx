@@ -60,5 +60,14 @@ function App() {
     </div>
   );
 }
-
+<section className="community-section">
+  <div className="community-card">
+    <div className="community-content">
+      <span className="tag">Community</span>
+      <h2>사람들의 Paradox 프로젝트</h2>
+      <p>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
+      <button className="paradox-button">커뮤니티 입장하기</button>
+    </div>
+  </div>
+</section>
 export default App;
