@@ -40,12 +40,10 @@
   vertical-align: middle;
 }
 
-.paradox-bg {
-  background: var(--paradox-gradient);
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.3s;
+.paradox-bg:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 74, 173, 0.4);
 }
 
 /* 4. 기존에 주셨던 구조 코드 */

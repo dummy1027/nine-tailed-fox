@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
+import CPreview from './CPreview';
 
 // --- 파트 1: 왼쪽 외곽 배치 지뢰찾기 (위치 고정) ---
 const Minesweeper = () => {
@@ -61,7 +62,7 @@ const Home = ({ message }) => {
           </p>
           <div style={{marginTop: '25px', color: '#5c5e62'}}>{message}</div>
           <div className="button-group" style={{marginTop: '40px', justifyContent: 'center'}}>
-            <button className="btn paradox-bg" style={{padding: '15px 40px', fontSize: '18px'}}>C언어 맛보기</button>
+            <button className="btn paradox-bg" style={{padding: '15px 40px', fontSize: '18px'}} onClick={() => navigate('/c-preview')}>C언어 맛보기</button>
           </div>
         </div>
       </section>
@@ -147,6 +148,7 @@ function App() {
         <Route path="/basics" element={<Basics />} />
         <Route path="/community" element={<Community />} />
         <Route path="/workbook" element={<Workbook />} />
+        <Route path="/c-preview" element={<CPreview />} />
       </Routes>
     </Router>
   );
