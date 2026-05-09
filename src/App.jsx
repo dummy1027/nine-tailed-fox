@@ -2,21 +2,34 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 
-// --- 지뢰찾기 미니 컴포넌트 (공간 활용을 위해 크기 및 배치 수정) ---
+// --- 파트 1: 왼쪽 외곽 배치 지뢰찾기 ---
 const Minesweeper = () => {
   return (
     <div className="minesweeper-box" style={{
-      width: '350px', height: '400px', backgroundColor: '#1c1c1e', 
-      borderRadius: '30px', border: '1px solid #333',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      color: '#8e8e93', fontSize: '14px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+      position: 'absolute', // 절대 위치 설정
+      left: '-400px',      // 중앙 컨테이너 기준 왼쪽으로 400px 이동 (화면 밖 배치)
+      top: '50px',
+      width: '320px', 
+      height: '380px', 
+      backgroundColor: '#1c1c1e', 
+      borderRadius: '25px', 
+      border: '1px solid #333',
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      color: '#8e8e93', 
+      boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+      zIndex: 10
     }}>
-      <div style={{fontSize: '50px', marginBottom: '15px'}}>💣</div>
-      <h3 style={{color: 'white', marginBottom: '5px'}}>Minesweeper</h3>
-      <p style={{fontSize: '12px'}}>논리력 테스트 존</p>
-      <div style={{marginTop: '20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px'}}>
+      <div style={{fontSize: '40px', marginBottom: '10px'}}>💣</div>
+      <h3 style={{color: 'white', margin: '5px 0'}}>Minesweeper</h3>
+      <p style={{fontSize: '12px', marginBottom: '20px'}}>논리력 테스트 존</p>
+      
+      {/* 4x4 그리드 예시 */}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px'}}>
         {[...Array(16)].map((_, i) => (
-          <div key={i} style={{width: '30px', height: '30px', backgroundColor: '#2c2c2e', borderRadius: '5px'}}></div>
+          <div key={i} style={{width: '35px', height: '35px', backgroundColor: '#2c2c2e', borderRadius: '8px'}}></div>
         ))}
       </div>
     </div>
