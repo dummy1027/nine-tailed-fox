@@ -24,7 +24,6 @@ function App() {
       {/* 히어로 섹션 */}
       <section className="hero-section">
         <div className="hero-content" style={{textAlign: 'center'}}>
-          {/* 여기에 그라데이션 적용! */}
           <h1 className="text-gradient" style={{fontSize: '60px', marginBottom: '10px'}}>
             Paradox
           </h1>
@@ -37,13 +36,12 @@ function App() {
         </div>
 
         <div className="button-group">
-          {/* 버튼에도 그라데이션을 포인트로! */}
           <button className="btn paradox-bg">무료로 시작하기</button>
           <button className="btn btn-secondary">커리큘럼 보기</button>
         </div>
       </section>
       
-      {/* 하단 섹션: C언어의 특징 강조 */}
+      {/* 흰색 섹션 */}
       <section style={{padding: '100px 40px', backgroundColor: '#ffffff', textAlign: 'center'}}>
         <h2 style={{fontSize: '32px', fontWeight: '500'}}>왜 C언어인가요?</h2>
         <div style={{display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '50px'}}>
@@ -57,17 +55,20 @@ function App() {
           </div>
         </div>
       </section>
-    </div>
+
+      {/* 커뮤니티 섹션 (이 위치에 있어야 검은 배경에 나타납니다) */}
+      <section className="community-section">
+        <div className="community-card">
+          <div className="community-content">
+            <span className="tag">Community</span>
+            <h2>사람들의 Paradox 프로젝트</h2>
+            <p>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
+            <button className="paradox-button">커뮤니티 입장하기</button>
+          </div>
+        </div>
+      </section>
+    </div> /* 컨테이너 닫기 */
   );
 }
-<section className="community-section">
-  <div className="community-card">
-    <div className="community-content">
-      <span className="tag">Community</span>
-      <h2>사람들의 Paradox 프로젝트</h2>
-      <p>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
-      <button className="paradox-button">커뮤니티 입장하기</button>
-    </div>
-  </div>
-</section>
+
 export default App;
