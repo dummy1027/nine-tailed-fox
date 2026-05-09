@@ -6,8 +6,8 @@ import './App.css';
 const Minesweeper = () => {
   return (
     <div className="minesweeper-box" style={{
-      position: 'absolute', // 절대 위치 설정
-      left: '-400px',      // 중앙 컨테이너 기준 왼쪽으로 400px 이동 (화면 밖 배치)
+      position: 'absolute', 
+      left: '-400px',      
       top: '50px',
       width: '320px', 
       height: '380px', 
@@ -25,8 +25,6 @@ const Minesweeper = () => {
       <div style={{fontSize: '40px', marginBottom: '10px'}}>💣</div>
       <h3 style={{color: 'white', margin: '5px 0'}}>Minesweeper</h3>
       <p style={{fontSize: '12px', marginBottom: '20px'}}>논리력 테스트 존</p>
-      
-      {/* 4x4 그리드 예시 */}
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px'}}>
         {[...Array(16)].map((_, i) => (
           <div key={i} style={{width: '35px', height: '35px', backgroundColor: '#2c2c2e', borderRadius: '8px'}}></div>
@@ -36,14 +34,12 @@ const Minesweeper = () => {
   );
 };
 
-// --- 1. 메인 페이지 컴포넌트 (레이아웃 대공사) ---
-// --- 파트 2: 메인 페이지 (Home - 커뮤니티 카드 포함 버전) ---
+// --- 파트 2: 메인 페이지 (Home) ---
 const Home = ({ message }) => {
   const navigate = useNavigate();
 
   return (
     <div className="container" style={{ position: 'relative' }}>
-      {/* 1. 히어로 섹션 (지뢰찾기 + Paradox) */}
       <section className="hero-section" style={{
         display: 'flex', 
         flexDirection: 'column',
@@ -51,11 +47,7 @@ const Home = ({ message }) => {
         padding: '100px 0', 
         position: 'relative'
       }}>
-        
-        {/* 지뢰찾기는 사용자님이 찍어주신 왼쪽 빈 공간에! */}
         <Minesweeper />
-
-        {/* 중앙 Paradox 텍스트 영역 */}
         <div className="hero-content" style={{ textAlign: 'center', zIndex: 5 }}>
           <h1 className="text-gradient" style={{fontSize: '80px', marginBottom: '15px', fontWeight: '800'}}>
             Paradox
@@ -70,7 +62,6 @@ const Home = ({ message }) => {
         </div>
       </section>
 
-      {/* 2. 특징 섹션 (간단 설명) */}
       <section style={{padding: '80px 40px', backgroundColor: '#ffffff', textAlign: 'center'}}>
         <h2 style={{fontSize: '32px', marginBottom: '50px'}}>왜 C언어인가요?</h2>
         <div style={{display: 'flex', justifyContent: 'center', gap: '60px'}}>
@@ -79,19 +70,12 @@ const Home = ({ message }) => {
         </div>
       </section>
 
-      {/* 3. ★ 다시 돌아온 커뮤니티 바로가기 ★ */}
       <section className="community-section" style={{ paddingBottom: '100px' }}>
-        <div 
-          className="community-card" 
-          onClick={() => navigate('/community')}
-          style={{ cursor: 'pointer', margin: '0 auto', maxWidth: '900px' }}
-        >
+        <div className="community-card" onClick={() => navigate('/community')} style={{ cursor: 'pointer', margin: '0 auto', maxWidth: '900px' }}>
           <div className="community-content" style={{ padding: '60px', textAlign: 'center' }}>
             <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>COMMUNITY</span>
             <h2 style={{ fontSize: '36px', marginTop: '10px' }}>사람들의 Paradox 프로젝트</h2>
-            <p style={{ color: '#8e8e93', marginTop: '15px', fontSize: '18px' }}>
-              직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.
-            </p>
+            <p style={{ color: '#8e8e93', marginTop: '15px', fontSize: '18px' }}>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
             <button className="paradox-button" style={{ marginTop: '30px' }}>커뮤니티 입장하기</button>
           </div>
         </div>
@@ -100,40 +84,14 @@ const Home = ({ message }) => {
   );
 };
 
-// --- 2. C언어 기초 페이지 (새로 추가) ---
-const Basics = () => {
-  return (
-    <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
-      <h1 className="text-gradient" style={{fontSize: '50px'}}>C언어 기초</h1>
-      <div style={{maxWidth: '800px', margin: '40px auto', textAlign: 'left', backgroundColor: '#1c1c1e', padding: '40px', borderRadius: '20px', color: 'white'}}>
-        <h3>1. Hello, World!</h3>
-        <p style={{color: '#8e8e93'}}>모든 프로그래밍의 시작은 출력부터입니다.</p>
-        <code style={{display: 'block', backgroundColor: '#000', padding: '20px', borderRadius: '10px', marginTop: '10px', color: '#cb6ce6'}}>
-          printf("Hello, Paradox!");
-        </code>
-      </div>
-      <Link to="/" style={{color: 'var(--tesla-blue)', textDecoration: 'none'}}>← 돌아가기</Link>
-    </div>
-  );
-};
-
-// --- 2. 커뮤니티 페이지 컴포넌트 (수정본) ---
+// --- 파트 3: 각 페이지 컴포넌트 (줄 바꿈 버튼 적용) ---
 const Community = () => {
   return (
     <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
       <h1 className="text-gradient" style={{fontSize: '50px'}}>Community</h1>
-      <p style={{color: '#8e8e93', marginTop: '20px', fontSize: '18px'}}>
-        준비 중인 커뮤니티 공간입니다. 곧 여러분의 프로젝트를 공유할 수 있어요!
-      </p>
-      
-      {/* 줄 바꿈 버튼 적용 */}
+      <p style={{color: '#8e8e93', marginTop: '20px', fontSize: '18px'}}>준비 중인 커뮤니티 공간입니다. 곧 공개됩니다!</p>
       <div style={{marginTop: '60px'}}>
-        <Link to="/" style={{
-          color: 'var(--tesla-blue)', 
-          textDecoration: 'none',
-          fontSize: '18px',
-          fontWeight: '500'
-        }}>
+        <Link to="/" style={{color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500'}}>
           ← 돌아가기
         </Link>
       </div>
@@ -141,26 +99,48 @@ const Community = () => {
   );
 };
 
-// --- 3. 문제집 페이지 컴포넌트 (수정본) ---
 const Workbook = () => {
   return (
     <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
       <h1 className="text-gradient" style={{fontSize: '50px'}}>Workbook</h1>
-      <p style={{color: '#8e8e93', marginTop: '20px', fontSize: '18px'}}>
-        C언어 마스터를 위한 엄선된 문제집입니다. 곧 공개됩니다!
-      </p>
-
-      {/* 여기도 줄 바꿈 버튼 적용 */}
+      <p style={{color: '#8e8e93', marginTop: '20px', fontSize: '18px'}}>C언어 마스터를 위한 엄선된 문제집입니다.</p>
       <div style={{marginTop: '60px'}}>
-        <Link to="/" style={{
-          color: 'var(--tesla-blue)', 
-          textDecoration: 'none',
-          fontSize: '18px',
-          fontWeight: '500'
-        }}>
+        <Link to="/" style={{color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500'}}>
           ← 돌아가기
         </Link>
       </div>
     </div>
   );
 };
+
+// --- 파트 4: 앱 설정 ---
+function App() {
+  const [message, setMessage] = useState("Loading...");
+
+  useEffect(() => {
+    fetch('http://localhost:5173/api/test')
+      .then(res => res.json())
+      .then(data => setMessage(data.result))
+      .catch(err => setMessage("서버 연결 필요 🦊"));
+  }, []);
+
+  return (
+    <Router>
+      <nav className="nav-bar">
+        <Link to="/" className="logo" style={{textDecoration: 'none'}}>NINE-TAILED FOX</Link>
+        <div className="nav-menu">
+          <Link to="/community" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>커뮤니티</Link>
+          <Link to="/workbook" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>문제집</Link>
+        </div>
+      </nav>
+
+      <Routes>
+        <Route path="/" element={<Home message={message} />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/workbook" element={<Workbook />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
