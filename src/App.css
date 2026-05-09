@@ -7,7 +7,7 @@
   --paradox-start: #004aad;
   --paradox-end: #cb6ce6;
   --paradox-gradient: linear-gradient(135deg, var(--paradox-start) 0%, var(--paradox-end) 100%);
-  
+
   /* 2. 기존 구조에서 사용하던 변수 매핑 */
   --accent: var(--tesla-blue);
   --accent-bg: #f4f4f4;
@@ -17,12 +17,22 @@
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* 3. 새로 추가된 공통 클래스 */
+/* 3. 새로 추가된 공동 클래스 */
 .text-gradient {
-  background: linear-gradient(to right, #004AAD, #CB6CE6);
-  -webkit-background-clip: text; /* 23열: 기존 코드 */
-  background-clip: text;         /* [추가] 이게 표준 속성입니다! */
+  /* 그라데이션 설정 */
+  background: linear-gradient(to right, #004aad, #cb6ce6);
+  
+  /* 브라우저 호환성 및 표준 속성 (23열 경고 해결) */
+  -webkit-background-clip: text;
+  background-clip: text; 
   -webkit-text-fill-color: transparent;
+  color: transparent; /* 백업용 */
+
+  /* 글자 잘림 방지 설정 */
+  display: inline-block; /* 영역을 확실히 확보 */
+  line-height: 1.4;      /* 위아래 간격을 넉넉히 */
+  padding: 0.1em 0;      /* 미세한 잘림 방지 */
+  vertical-align: middle;
 }
 
 .paradox-bg {
@@ -33,98 +43,10 @@
   transition: opacity 0.3s;
 }
 
-/* 4. 기존에 주셨던 구조 코드 (그대로 유지) */
+/* 4. 기존에 주셨던 구조 코드 */
 .counter {
   font-size: 16px;
   padding: 5px 10px;
   border-radius: 5px;
   color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-}
-.counter:hover { border-color: var(--accent-border); }
-
-.hero {
-  position: relative;
-  width: 100%;
-}
-.hero .base, .hero .framework, .hero .vite {
-  inset-inline: 0;
-  margin: 0 auto;
-}
-.hero .base { width: 170px; position: relative; z-index: 0; }
-.hero .framework, .hero .vite { position: absolute; }
-.hero .framework {
-  z-index: 1; top: 34px; height: 28px;
-  transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg) scale(1.4);
-}
-.hero .vite {
-  z-index: 0; top: 107px; height: 26px; width: auto;
-  transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg) scale(0.8);
-}
-
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-}
-#next-steps > div { flex: 1 1 0; padding: 32px; }
-#next-steps .icon { margin-bottom: 16px; width: 22px; height: 22px; }
-
-#docs { border-right: 1px solid var(--border); }
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-}
-#next-steps ul a {
-  color: var(--text-h);
-  font-size: 16px;
-  border-radius: 6px;
-  background: var(--social-bg);
-  display: flex;
-  padding: 6px 12px;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  transition: box-shadow 0.3s;
-}
-#next-steps ul a:hover { box-shadow: var(--shadow); }
-
-#spacer { height: 88px; border-top: 1px solid var(--border); }
-
-.ticks {
-  position: relative;
-  width: 100%;
-}
-.ticks::before, .ticks::after {
-  content: ''; position: absolute; top: -4.5px; border: 5px solid transparent;
-}
-.ticks::before { left: 0; border-left-color: var(--border); }
-.ticks::after { right: 0; border-right-color: var(--border); }
-
-/* 모바일 대응 미디어 쿼리 */
-@media (max-width: 1024px) {
-  #center { padding: 32px 20px 24px; gap: 18px; }
-  #next-steps { flex-direction: column; text-align: center; }
-  #docs { border-right: none; border-bottom: 1px solid var(--border); }
-  #next-steps > div { padding: 24px 20px; }
-  #next-steps ul { margin-top: 20px; flex-wrap: wrap; justify-content: center; }
-  #next-steps ul li { flex: 1 1 calc(50% - 8px); }
-  #next-steps ul a { width: 100%; justify-content: center; box-sizing: border-box; }
-  #spacer { height: 48px; }
 }
