@@ -26,7 +26,7 @@ function App() {
         <div className="hero-content" style={{textAlign: 'center'}}>
           {/* 여기에 그라데이션 적용! */}
           <h1 className="text-gradient" style={{fontSize: '60px', marginBottom: '10px'}}>
-            Paradox of C
+            paradox
           </h1>
           <p style={{fontSize: '18px', color: '#393c41', fontWeight: '400'}}>
             가장 강력한 언어로 배우는 논리적 사고의 정점
