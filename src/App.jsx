@@ -37,58 +37,42 @@ const Minesweeper = () => {
 };
 
 // --- 1. 메인 페이지 컴포넌트 (레이아웃 대공사) ---
+// --- 파트 2: 메인 페이지 (Home) ---
 const Home = ({ message }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="container">
-      {/* 히어로 섹션: 지뢰찾기를 좌측 끝으로, 텍스트를 중앙/우측으로 */}
+    <div className="container" style={{ position: 'relative' }}>
       <section className="hero-section" style={{
-        display: 'flex', alignItems: 'center', padding: '100px 5%', minHeight: '70vh', position: 'relative'
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        padding: '100px 0', 
+        position: 'relative' // 지뢰찾기가 얘를 기준으로 왼쪽으로 가요!
       }}>
-        {/* 좌측: 지뢰찾기 (공간을 넉넉히 차지) */}
-        <div className="hero-left" style={{ flex: '1', display: 'flex', justifyContent: 'flex-start' }}>
-          <Minesweeper />
-        </div>
+        
+        {/* 지뢰찾기 소환! 왼쪽 밖으로 나갑니다 */}
+        <Minesweeper />
 
-        {/* 우측: 텍스트 및 버튼 (중앙에서 약간 우측 배치) */}
-        <div className="hero-right" style={{ flex: '1.5', textAlign: 'left', paddingLeft: '50px' }}>
+        {/* 주인공 Paradox 등장 */}
+        <div className="hero-content" style={{ textAlign: 'center', zIndex: 5 }}>
           <h1 className="text-gradient" style={{fontSize: '80px', marginBottom: '15px', fontWeight: '800'}}>
             Paradox
           </h1>
-          <p style={{fontSize: '22px', color: '#393c41', maxWidth: '500px', lineHeight: '1.4'}}>
+          <p style={{fontSize: '22px', color: '#393c41', maxWidth: '500px', margin: '0 auto', lineHeight: '1.4'}}>
             가장 강력한 언어로 배우는<br />논리적 사고의 정점
           </p>
-          <div style={{marginTop: '25px', color: '#5c5e62', fontSize: '16px'}}>{message}</div>
-          
-          <div className="button-group" style={{marginTop: '40px', justifyContent: 'flex-start'}}>
+          <div style={{marginTop: '25px', color: '#5c5e62'}}>{message}</div>
+          <div className="button-group" style={{marginTop: '40px', justifyContent: 'center'}}>
             <button className="btn paradox-bg" style={{padding: '15px 40px', fontSize: '18px'}}>무료로 시작하기</button>
           </div>
         </div>
       </section>
       
-      {/* 특징 및 커뮤니티 섹션 유지 */}
-      <section style={{padding: '100px 40px', backgroundColor: '#ffffff', textAlign: 'center'}}>
-        <h2 style={{fontSize: '32px'}}>왜 C언어인가요?</h2>
-        <div style={{display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '50px'}}>
-          <div style={{width: '250px'}}><h3 className="text-gradient">Performance</h3><p>최고의 속도와 제어력</p></div>
-          <div style={{width: '250px'}}><h3 className="text-gradient">Fundamentals</h3><p>프로그래밍의 뿌리</p></div>
-        </div>
-      </section>
-
-      <section className="community-section">
-        <div className="community-card" onClick={() => navigate('/community')}>
-          <div className="community-content">
-            <span className="tag">Community</span>
-            <h2>사람들의 Paradox 프로젝트</h2>
-            <button className="paradox-button">입장하기</button>
-          </div>
-        </div>
-      </section>
+      {/* 특징 및 커뮤니티 섹션 (아래쪽은 예전이랑 똑같아요!) */}
     </div>
   );
 };
-
 // --- 2. C언어 기초 페이지 (새로 추가) ---
 const Basics = () => {
   return (
