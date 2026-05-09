@@ -117,51 +117,50 @@ const Basics = () => {
   );
 };
 
-// --- 나머지 컴포넌트들 ---
-const Community = () => (
-  <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
-    <h1 className="text-gradient">Community</h1>
-    <Link to="/">돌아가기</Link>
-  </div>
-);
-
-const Workbook = () => (
-  <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
-    <h1 className="text-gradient">Workbook</h1>
-    <Link to="/">돌아가기</Link>
-  </div>
-);
-
-// --- 앱 설정 ---
-function App() {
-  const [message, setMessage] = useState("Loading...");
-
-  useEffect(() => {
-    fetch('http://localhost:5173/api/test')
-      .then(res => res.json())
-      .then(data => setMessage(data.result))
-      .catch(err => setMessage("서버 연결 필요 🦊"));
-  }, []);
-
+// --- 2. 커뮤니티 페이지 컴포넌트 (수정본) ---
+const Community = () => {
   return (
-    <Router>
-      <nav className="nav-bar">
-        <Link to="/" className="logo" style={{textDecoration: 'none'}}>NINE-TAILED FOX</Link>
-        <div className="nav-menu">
-          <Link to="/basics" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>C언어 기초</Link>
-          <Link to="/community" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>커뮤니티</Link>
-          <Link to="/workbook" style={{margin: '0 15px', color: 'inherit', textDecoration: 'none'}}>문제집</Link>
-        </div>
-      </nav>
-
-      <Routes>
-        <Route path="/" element={<Home message={message} />} />
-        <Route path="/basics" element={<Basics />} />
-        <Route path="/community" element={<Community />} />
-        <Route path="/workbook" element={<Workbook />} />
-      </Routes>
-    </Router>
+    <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
+      <h1 className="text-gradient" style={{fontSize: '50px'}}>Community</h1>
+      <p style={{color: '#8e8e93', marginTop: '20px', fontSize: '18px'}}>
+        준비 중인 커뮤니티 공간입니다. 곧 여러분의 프로젝트를 공유할 수 있어요!
+      </p>
+      
+      {/* 줄 바꿈 버튼 적용 */}
+      <div style={{marginTop: '60px'}}>
+        <Link to="/" style={{
+          color: 'var(--tesla-blue)', 
+          textDecoration: 'none',
+          fontSize: '18px',
+          fontWeight: '500'
+        }}>
+          ← 돌아가기
+        </Link>
+      </div>
+    </div>
   );
-}
+};
 
-export default App;
+// --- 3. 문제집 페이지 컴포넌트 (수정본) ---
+const Workbook = () => {
+  return (
+    <div className="container" style={{padding: '100px 20px', textAlign: 'center'}}>
+      <h1 className="text-gradient" style={{fontSize: '50px'}}>Workbook</h1>
+      <p style={{color: '#8e8e93', marginTop: '20px', fontSize: '18px'}}>
+        C언어 마스터를 위한 엄선된 문제집입니다. 곧 공개됩니다!
+      </p>
+
+      {/* 여기도 줄 바꿈 버튼 적용 */}
+      <div style={{marginTop: '60px'}}>
+        <Link to="/" style={{
+          color: 'var(--tesla-blue)', 
+          textDecoration: 'none',
+          fontSize: '18px',
+          fontWeight: '500'
+        }}>
+          ← 돌아가기
+        </Link>
+      </div>
+    </div>
+  );
+};
