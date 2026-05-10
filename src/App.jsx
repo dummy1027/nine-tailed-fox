@@ -60,7 +60,7 @@ const Basics = () => {
         <h3>1. Hello, World!</h3>
         <p style={{ color: '#8e8e93' }}>모든 프로그래밍의 시작은 출력부터입니다.</p>
         <code style={{ display: 'block', backgroundColor: '#000', padding: '20px', borderRadius: '10px', marginTop: '10px', color: '#cb6ce6' }}>
-          printf("Hello, Paradox!");
+          printf("Hello, World!");
         </code>
       </div>
       <div style={{ marginTop: '60px' }}>
