@@ -45,6 +45,117 @@ const CPreview = () => {
     setIsCorrect(null);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      const value = e.target.value;
+
+      // 현재 줄의 시작 위치와 들여쓰기 확인
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const lineUntilCursor = value.substring(lineStart, start);
+      const indentationMatch = lineUntilCursor.match(/^\s*/);
+      const currentIndentation = indentationMatch ? indentationMatch[0] : '';
+      
+      let newText = '\n' + currentIndentation;
+      let cursorOffset = 1 + currentIndentation.length;
+
+      // {와 } 사이에서 엔터를 친 경우 (3줄로 확장)
+      if (value[start - 1] === '{' && value[start] === '}') {
+        newText = '\n' + currentIndentation + '\t\n' + currentIndentation;
+        cursorOffset = 1 + currentIndentation.length + 1; // 첫 번째 줄바꿈과 탭 뒤로 커서 이동
+      } else if (lineUntilCursor.trim().endsWith('{')) {
+        // 줄이 {로 끝나는 경우 들여쓰기 추가
+        newText += '\t';
+        cursorOffset += 1;
+      }
+
+      const newCode = value.substring(0, start) + newText + value.substring(end);
+      setCode(newCode);
+      
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + cursorOffset;
+        }
+      }, 0);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      const value = e.target.value;
+
+      const newCode = value.substring(0, start) + '\t' + value.substring(end);
+      setCode(newCode);
+      
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 1;
+        }
+      }, 0);
+    } else if (e.key === '}') {
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      const value = e.target.value;
+
+      const currentLineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const currentLineBeforeCursor = value.substring(currentLineStart, start);
+      
+      if (/^\s*$/.test(currentLineBeforeCursor)) {
+        e.preventDefault();
+        
+        let balance = 1;
+        let matchIndex = -1;
+        for (let i = start - 1; i >= 0; i--) {
+          if (value[i] === '}') balance++;
+          else if (value[i] === '{') balance--;
+          
+          if (balance === 0) {
+            matchIndex = i;
+            break;
+          }
+        }
+        
+        let targetIndent = '';
+        if (matchIndex !== -1) {
+          const matchLineStart = value.lastIndexOf('\n', matchIndex - 1) + 1;
+          const matchLine = value.substring(matchLineStart, matchIndex);
+          const match = matchLine.match(/^\s*/);
+          targetIndent = match ? match[0] : '';
+        } else {
+          targetIndent = currentLineBeforeCursor.replace(/\t$/, '').replace(/    $/, '');
+        }
+
+        const newCode = value.substring(0, currentLineStart) + targetIndent + '}' + value.substring(end);
+        setCode(newCode);
+
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = textareaRef.current.selectionEnd = currentLineStart + targetIndent.length + 1;
+          }
+        }, 0);
+      }
+    } else if (['{', '(', '[', '"', "'"].includes(e.key)) {
+      e.preventDefault();
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      const value = e.target.value;
+      
+      const pairs = { '{': '}', '(': ')', '[': ']', '"': '"', "'": "'" };
+      const char = e.key;
+      const pair = pairs[char];
+
+      const newCode = value.substring(0, start) + char + pair + value.substring(end);
+      setCode(newCode);
+
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 1;
+        }
+      }, 0);
+    }
+  };
+
   // 하이라이트 로직
   const highlightCode = (code) => {
     const tokens = [];
@@ -97,7 +208,8 @@ const CPreview = () => {
     letterSpacing: 'normal',
     wordBreak: 'break-all',
     whiteSpace: 'pre-wrap', // 줄바꿈 대응
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    textAlign: 'left'
   };
 
   return (
@@ -138,6 +250,7 @@ const CPreview = () => {
               ref={textareaRef}
               value={code}
               onChange={(e) => setCode(e.target.value)}
+              onKeyDown={handleKeyDown}
               onScroll={handleScroll}
               spellCheck={false}
               style={{
