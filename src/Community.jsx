@@ -77,10 +77,13 @@ const Community = () => {
         setContent('');
         setAuthor('');
         setView('list');
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.error || '서버 응답 오류');
       }
     } catch (err) {
       console.error('글 작성 실패:', err);
-      alert('서버 오류로 글을 저장하지 못했습니다.');
+      alert(`서버 오류: ${err.message}\n(아까 드린 SQL을 Supabase에서 실행하셨는지 확인해주세요!)`);
     }
   };
 
