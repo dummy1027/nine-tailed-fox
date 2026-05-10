@@ -14,22 +14,29 @@ const Community = () => {
   const [likedPosts, setLikedPosts] = useState([]);
   const [sortBy, setSortBy] = useState('latest'); // 'latest', 'views', 'likes'
   const [searchParams, setSearchParams] = useSearchParams();
+  const [loading, setLoading] = useState(true);
 
-  // Load posts from localStorage
-  useEffect(() => {
-    const savedPosts = localStorage.getItem('paradox_posts');
-    if (savedPosts) {
-      setPosts(JSON.parse(savedPosts));
-    } else {
-      // Mock data
-      const mockPosts = [
-        { id: 1, title: 'C언어 포인터가 너무 어려워요 ㅜㅜ', author: '초보개발자', content: '포인터 개념이 너무 헷갈리는데 쉽게 설명해주실 분 계신가요?', date: '2026-05-10', views: 125, likes: 12 },
-        { id: 2, title: 'Paradox 프로젝트 완성했습니다!', author: '고수C', content: '드디어 테슬라 스타일의 멋진 사이트를 완성했네요. 다들 구경오세요!', date: '2026-05-09', views: 342, likes: 56 },
-        { id: 3, title: '오늘의 알고리즘 퀴즈', author: '운영자', content: '배열을 뒤집는 가장 효율적인 방법은 무엇일까요?', date: '2026-05-08', views: 89, likes: 5 }
-      ];
-      setPosts(mockPosts);
-      localStorage.setItem('paradox_posts', JSON.stringify(mockPosts));
+  // API에서 게시글 로드
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/posts');
+      const data = await res.json();
+      // DB 필드명(text_align)을 JS 필드명(textAlign)으로 변환
+      const mappedData = data.map(p => ({
+        ...p,
+        textAlign: p.text_align || 'left'
+      }));
+      setPosts(mappedData);
+    } catch (err) {
+      console.error('게시글 로드 실패:', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchPosts();
 
     const savedLikes = localStorage.getItem('paradox_liked_posts');
     if (savedLikes) {
@@ -51,67 +58,81 @@ const Community = () => {
     }
   }, [searchParams, posts]);
 
-  const savePost = () => {
+  const savePost = async () => {
     if (!title || !content || !author) {
       alert('모든 필드를 입력해주세요!');
       return;
     }
 
-    const newPost = {
-      id: Date.now(),
-      title,
-      author,
-      content,
-      textAlign: alignment,
-      date: new Date().toISOString().split('T')[0],
-      views: 0,
-      likes: 0
-    };
+    try {
+      const res = await fetch('http://localhost:5000/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content, author, textAlign: alignment })
+      });
 
-    const updatedPosts = [newPost, ...posts];
-    setPosts(updatedPosts);
-    localStorage.setItem('paradox_posts', JSON.stringify(updatedPosts));
-
-    // Reset form and go back to list
-    setTitle('');
-    setContent('');
-    setAuthor('');
-    setView('list');
+      if (res.ok) {
+        await fetchPosts(); // 목록 새로고침
+        setTitle('');
+        setContent('');
+        setAuthor('');
+        setView('list');
+      }
+    } catch (err) {
+      console.error('글 작성 실패:', err);
+      alert('서버 오류로 글을 저장하지 못했습니다.');
+    }
   };
 
-  const openDetail = (post) => {
+  const openDetail = async (post) => {
     setSearchParams({ id: post.id });
-    // setView('detail')과 setSelectedPost(post)는 useEffect에서 자동으로 처리됨
 
-    // 조회수 업데이트
-    const updatedPosts = posts.map(p =>
-      p.id === post.id ? { ...p, views: p.views + 1 } : p
-    );
-    setPosts(updatedPosts);
-    localStorage.setItem('paradox_posts', JSON.stringify(updatedPosts));
+    // 조회수 업데이트 (API 호출)
+    try {
+      const newViews = (post.views || 0) + 1;
+      await fetch(`http://localhost:5000/api/posts/${post.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ views: newViews })
+      });
+
+      // 로컬 상태도 살짝 업데이트해서 실시간 느낌 주기
+      setPosts(posts.map(p => p.id === post.id ? { ...p, views: newViews } : p));
+    } catch (err) {
+      console.error('조회수 업데이트 실패:', err);
+    }
   };
 
-  const handleLike = (postId) => {
-    // 이미 좋아요를 누른 글인지 확인
+  const handleLike = async (postId) => {
     if (likedPosts.includes(postId)) {
       alert('이미 좋아요를 누른 게시글입니다.');
       return;
     }
 
-    const updatedPosts = posts.map(p =>
-      p.id === postId ? { ...p, likes: (p.likes || 0) + 1 } : p
-    );
-    setPosts(updatedPosts);
-    localStorage.setItem('paradox_posts', JSON.stringify(updatedPosts));
+    const post = posts.find(p => p.id === postId);
+    const newLikes = (post?.likes || 0) + 1;
 
-    // 좋아요 목록 업데이트
-    const newLikedPosts = [...likedPosts, postId];
-    setLikedPosts(newLikedPosts);
-    localStorage.setItem('paradox_liked_posts', JSON.stringify(newLikedPosts));
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${postId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ likes: newLikes })
+      });
 
-    // 상세 보기 중인 경우 selectedPost도 업데이트
-    if (selectedPost && selectedPost.id === postId) {
-      setSelectedPost({ ...selectedPost, likes: (selectedPost.likes || 0) + 1 });
+      if (res.ok) {
+        // 좋아요 목록 업데이트 (로컬스토리지 유지 - 중복 방지용)
+        const newLikedPosts = [...likedPosts, postId];
+        setLikedPosts(newLikedPosts);
+        localStorage.setItem('paradox_liked_posts', JSON.stringify(newLikedPosts));
+
+        // 전체 목록 및 선택된 글 업데이트
+        setPosts(posts.map(p => p.id === postId ? { ...p, likes: newLikes } : p));
+        if (selectedPost && selectedPost.id === postId) {
+          setSelectedPost({ ...selectedPost, likes: newLikes });
+        }
+      }
+    } catch (err) {
+      console.error('좋아요 실패:', err);
     }
   };
 
@@ -178,35 +199,47 @@ const Community = () => {
           ))}
         </div>
 
-        <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--theme-border)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--theme-border)', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>
-                <th style={{ padding: '20px' }}>제목</th>
-                <th style={{ padding: '20px' }}>작성자</th>
-                <th style={{ padding: '20px' }}>날짜</th>
-                <th style={{ padding: '20px' }}>조회</th>
-                <th style={{ padding: '20px' }}>좋아요</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedPosts.map(post => (
-                <tr
-                  key={post.id}
-                  onClick={() => openDetail(post)}
-                  style={{ cursor: 'pointer', borderBottom: '1px solid var(--theme-border)', transition: 'background 0.2s', color: 'var(--theme-text)' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-border)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <td style={{ padding: '20px', fontWeight: '500' }}>{post.title}</td>
-                  <td style={{ padding: '20px', color: 'var(--theme-secondary-text)' }}>{post.author}</td>
-                  <td style={{ padding: '20px', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>{post.date}</td>
-                  <td style={{ padding: '20px', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>{post.views}</td>
-                  <td style={{ padding: '20px', color: '#cb6ce6', fontSize: '14px', fontWeight: 'bold' }}>❤️ {post.likes || 0}</td>
+        <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--theme-border)', minHeight: '400px' }}>
+          {loading ? (
+            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>게시글을 불러오는 중...</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--theme-border)', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>
+                  <th style={{ padding: '20px' }}>제목</th>
+                  <th style={{ padding: '20px' }}>작성자</th>
+                  <th style={{ padding: '20px' }}>날짜</th>
+                  <th style={{ padding: '20px' }}>조회</th>
+                  <th style={{ padding: '20px' }}>좋아요</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortedPosts.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>작성된 게시글이 없습니다. 첫 글을 남겨보세요!</td>
+                  </tr>
+                ) : (
+                  sortedPosts.map(post => (
+                    <tr
+                      key={post.id}
+                      onClick={() => openDetail(post)}
+                      style={{ cursor: 'pointer', borderBottom: '1px solid var(--theme-border)', transition: 'background 0.2s', color: 'var(--theme-text)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-border)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <td style={{ padding: '20px', fontWeight: '500' }}>{post.title}</td>
+                      <td style={{ padding: '20px', color: 'var(--theme-secondary-text)' }}>{post.author}</td>
+                      <td style={{ padding: '20px', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>
+                        {new Date(post.created_at || post.date).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: '20px', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>{post.views}</td>
+                      <td style={{ padding: '20px', color: '#cb6ce6', fontSize: '14px', fontWeight: 'bold' }}>❤️ {post.likes || 0}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     );
