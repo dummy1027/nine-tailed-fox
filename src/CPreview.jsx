@@ -1,6 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
+const KEYWORDS = [
+  'printf', 'scanf', 'include', 'stdio.h', 'stdlib.h', 'string.h', 'math.h',
+  'int', 'main', 'return', 'void', 'if', 'else', 'while', 'for', 'char',
+  'float', 'double', 'switch', 'case', 'break', 'continue', 'struct', 'typedef',
+  '#include', '#define'
+];
+
+const FUNCTION_KEYWORDS = ['printf', 'scanf', 'main', 'if', 'while', 'for', 'switch', 'sizeof'];
+
 const CPreview = () => {
   const [code, setCode] = useState(`#include <stdio.h>\n\nint main() {\n\n\treturn 0;\n}`);
   const [output, setOutput] = useState('');
@@ -8,6 +17,12 @@ const CPreview = () => {
 
   const textareaRef = useRef(null);
   const preRef = useRef(null);
+  const mirrorRef = useRef(null);
+
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestIndex, setSuggestIndex] = useState(0);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [suggestPos, setSuggestPos] = useState({ top: 0, left: 0 });
 
   const problem = {
     title: 'Hello, World! 출력하기',
@@ -43,9 +58,75 @@ const CPreview = () => {
     setCode(`#include <stdio.h>\n\nint main() {\n\n\treturn 0;\n}`);
     setOutput('');
     setIsCorrect(null);
+    setShowSuggest(false);
+  };
+
+  const updateSuggestPos = (textBeforeCursor) => {
+    if (!mirrorRef.current || !textareaRef.current) return;
+
+    const mirror = mirrorRef.current;
+    mirror.textContent = textBeforeCursor;
+    const span = document.createElement('span');
+    span.textContent = '|';
+    mirror.appendChild(span);
+
+    const { offsetTop, offsetLeft } = span;
+    setSuggestPos({
+      top: offsetTop + 25,
+      left: offsetLeft
+    });
+  };
+
+  const handleSelectSuggestion = (suggestion) => {
+    const start = textareaRef.current.selectionStart;
+    const value = code;
+
+    const lastWordMatch = value.substring(0, start).match(/[\w#.]+$/);
+    if (!lastWordMatch) return;
+
+    const wordStart = start - lastWordMatch[0].length;
+
+    let insertValue = suggestion;
+    let cursorShift = suggestion.length;
+
+    // 함수형 키워드인 경우 괄호를 붙이고 커서를 괄호 안으로 이동
+    if (FUNCTION_KEYWORDS.includes(suggestion)) {
+      insertValue += '()';
+      cursorShift += 1;
+    }
+
+    const newCode = value.substring(0, wordStart) + insertValue + value.substring(start);
+
+    setCode(newCode);
+    setShowSuggest(false);
+
+    setTimeout(() => {
+      textareaRef.current.focus();
+      const newPos = wordStart + cursorShift;
+      textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newPos;
+    }, 0);
   };
 
   const handleKeyDown = (e) => {
+    if (showSuggest) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSuggestIndex(prev => (prev + 1) % suggestions.length);
+        return;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSuggestIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
+        return;
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        handleSelectSuggestion(suggestions[suggestIndex]);
+        return;
+      } else if (e.key === 'Escape') {
+        setShowSuggest(false);
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
       const start = e.target.selectionStart;
@@ -57,7 +138,7 @@ const CPreview = () => {
       const lineUntilCursor = value.substring(lineStart, start);
       const indentationMatch = lineUntilCursor.match(/^\s*/);
       const currentIndentation = indentationMatch ? indentationMatch[0] : '';
-      
+
       let newText = '\n' + currentIndentation;
       let cursorOffset = 1 + currentIndentation.length;
 
@@ -73,7 +154,7 @@ const CPreview = () => {
 
       const newCode = value.substring(0, start) + newText + value.substring(end);
       setCode(newCode);
-      
+
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + cursorOffset;
@@ -87,7 +168,7 @@ const CPreview = () => {
 
       const newCode = value.substring(0, start) + '\t' + value.substring(end);
       setCode(newCode);
-      
+
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 1;
@@ -100,22 +181,22 @@ const CPreview = () => {
 
       const currentLineStart = value.lastIndexOf('\n', start - 1) + 1;
       const currentLineBeforeCursor = value.substring(currentLineStart, start);
-      
+
       if (/^\s*$/.test(currentLineBeforeCursor)) {
         e.preventDefault();
-        
+
         let balance = 1;
         let matchIndex = -1;
         for (let i = start - 1; i >= 0; i--) {
           if (value[i] === '}') balance++;
           else if (value[i] === '{') balance--;
-          
+
           if (balance === 0) {
             matchIndex = i;
             break;
           }
         }
-        
+
         let targetIndent = '';
         if (matchIndex !== -1) {
           const matchLineStart = value.lastIndexOf('\n', matchIndex - 1) + 1;
@@ -140,7 +221,7 @@ const CPreview = () => {
       const start = e.target.selectionStart;
       const end = e.target.selectionEnd;
       const value = e.target.value;
-      
+
       const pairs = { '{': '}', '(': ')', '[': ']', '"': '"', "'": "'" };
       const char = e.key;
       const pair = pairs[char];
@@ -224,7 +305,63 @@ const CPreview = () => {
 
           {/* 에디터 컨테이너 */}
           <div style={{ position: 'relative', backgroundColor: '#000', borderRadius: '10px', height: '300px', overflow: 'hidden' }}>
-            
+            {/* Mirror Div (위치 계산용 숨김 디브) */}
+            <div
+              ref={mirrorRef}
+              style={{
+                ...editorStyle,
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                visibility: 'hidden',
+                whiteSpace: 'pre-wrap',
+                width: '100%',
+                zIndex: -1,
+                pointerEvents: 'none'
+              }}
+            />
+
+            {/* 자동완성 메뉴 */}
+            {showSuggest && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: suggestPos.top,
+                  left: suggestPos.left,
+                  backgroundColor: '#1c1c1e',
+                  border: '1px solid #3a3a3c',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                  zIndex: 10,
+                  minWidth: '150px',
+                  maxHeight: '200px',
+                  overflowY: 'auto'
+                }}
+              >
+                {suggestions.map((s, i) => (
+                  <div
+                    key={i}
+                    onMouseEnter={() => setSuggestIndex(i)}
+                    onClick={() => handleSelectSuggestion(s)}
+                    style={{
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      backgroundColor: i === suggestIndex ? 'rgba(203, 110, 230, 0.2)' : 'transparent',
+                      color: i === suggestIndex ? '#cb6ce6' : '#fff',
+                      fontSize: '14px',
+                      fontFamily: 'monospace',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <span>{s}</span>
+                    <span style={{ fontSize: '10px', color: '#5c5e62', marginLeft: '10px' }}>Keyword</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* 하단: 하이라이트 된 텍스트 표시 레이어 */}
             <pre
               ref={preRef}
@@ -249,7 +386,27 @@ const CPreview = () => {
             <textarea
               ref={textareaRef}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCode(val);
+                const start = e.target.selectionStart;
+                const lastWordMatch = val.substring(0, start).match(/[\w#.]+$/);
+
+                if (lastWordMatch) {
+                  const lastWord = lastWordMatch[0];
+                  const filtered = KEYWORDS.filter(k => k.startsWith(lastWord) && k !== lastWord);
+                  if (filtered.length > 0) {
+                    setSuggestions(filtered);
+                    setSuggestIndex(0);
+                    setShowSuggest(true);
+                    updateSuggestPos(val.substring(0, start));
+                  } else {
+                    setShowSuggest(false);
+                  }
+                } else {
+                  setShowSuggest(false);
+                }
+              }}
               onKeyDown={handleKeyDown}
               onScroll={handleScroll}
               spellCheck={false}
