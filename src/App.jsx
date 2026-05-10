@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 import CPreview from './CPreview';
+import Community from './Community';
 import logo from './assets/logo.png';
 
 
@@ -25,10 +26,10 @@ const Home = ({ message }) => {
           <h1 className="text-gradient" style={{ fontSize: '80px', marginBottom: '15px', fontWeight: '800' }}>
             Paradox
           </h1>
-          <p style={{ fontSize: '22px', color: '#393c41', maxWidth: '500px', margin: '0 auto', lineHeight: '1.4' }}>
+          <p style={{ fontSize: '22px', color: 'var(--theme-secondary-text)', maxWidth: '500px', margin: '0 auto', lineHeight: '1.4' }}>
             가장 강력한 언어로 배우는<br />논리적 사고의 정점
           </p>
-          <div style={{ marginTop: '25px', color: '#5c5e62' }}>{message}</div>
+          <div style={{ marginTop: '25px', color: 'var(--theme-secondary-text)' }}>{message}</div>
           <div className="button-group" style={{ marginTop: '40px', justifyContent: 'center' }}>
             <button className="btn paradox-bg" style={{ padding: '15px 40px', fontSize: '18px' }} onClick={() => navigate('/c-preview')}>C언어 맛보기</button>
           </div>
@@ -40,8 +41,8 @@ const Home = ({ message }) => {
         <div className="community-card" onClick={() => navigate('/community')} style={{ cursor: 'pointer', margin: '0 auto', maxWidth: '900px' }}>
           <div className="community-content" style={{ padding: '60px', textAlign: 'center' }}>
             <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>COMMUNITY</span>
-            <h2 style={{ fontSize: '36px', marginTop: '10px' }}>사람들의 Paradox 프로젝트</h2>
-            <p style={{ color: '#8e8e93', marginTop: '15px', fontSize: '18px' }}>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
+            <h2 style={{ fontSize: '36px', marginTop: '10px', color: 'var(--theme-text)' }}>사람들의 Paradox 프로젝트</h2>
+            <p style={{ color: 'var(--theme-secondary-text)', marginTop: '15px', fontSize: '18px' }}>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
             <button className="paradox-button" style={{ marginTop: '30px' }}>커뮤니티 입장하기</button>
           </div>
         </div>
@@ -55,7 +56,7 @@ const Basics = () => {
   return (
     <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
       <h1 className="text-gradient" style={{ fontSize: '50px' }}>C언어 기초</h1>
-      <div style={{ maxWidth: '800px', margin: '40px auto', textAlign: 'left', backgroundColor: '#1c1c1e', padding: '40px', borderRadius: '20px', color: 'white' }}>
+      <div style={{ maxWidth: '800px', margin: '40px auto', textAlign: 'left', backgroundColor: 'var(--theme-surface)', padding: '40px', borderRadius: '20px', color: 'var(--theme-text)', border: '1px solid var(--theme-border)' }}>
         <h3>1. Hello, World!</h3>
         <p style={{ color: '#8e8e93' }}>모든 프로그래밍의 시작은 출력부터입니다.</p>
         <code style={{ display: 'block', backgroundColor: '#000', padding: '20px', borderRadius: '10px', marginTop: '10px', color: '#cb6ce6' }}>
@@ -69,20 +70,12 @@ const Basics = () => {
   );
 };
 
-const Community = () => (
-  <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
-    <h1 className="text-gradient" style={{ fontSize: '50px' }}>Community</h1>
-    <p style={{ color: '#8e8e93', marginTop: '20px', fontSize: '18px' }}>준비 중인 커뮤니티 공간입니다. 곧 공개됩니다!</p>
-    <div style={{ marginTop: '60px' }}>
-      <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500' }}>← 돌아가기</Link>
-    </div>
-  </div>
-);
+// Community component removed as it is now imported from ./Community.jsx
 
 const Workbook = () => (
   <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
     <h1 className="text-gradient" style={{ fontSize: '50px' }}>Workbook</h1>
-    <p style={{ color: '#8e8e93', marginTop: '20px', fontSize: '18px' }}>C언어 마스터를 위한 엄선된 문제집입니다.</p>
+    <p style={{ color: 'var(--theme-secondary-text)', marginTop: '20px', fontSize: '18px' }}>다양한 C언어 예제와 연습문제가 준비되어 있습니다.</p>
     <div style={{ marginTop: '60px' }}>
       <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500' }}>← 돌아가기</Link>
     </div>
@@ -91,8 +84,8 @@ const Workbook = () => (
 
 const ServerStatus = () => (
   <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
-    <h1 className="text-gradient" style={{ fontSize: '50px' }}>서버 상태</h1>
-    <p style={{ color: '#8e8e93', marginTop: '20px', fontSize: '18px' }}>서버 상태 확인 페이지입니다. 지금은 준비중에 있습니다.</p>
+    <h1 className="text-gradient" style={{ fontSize: '50px' }}>Server Status</h1>
+    <p style={{ color: 'var(--theme-secondary-text)', marginTop: '20px', fontSize: '18px' }}>현재 Paradox 서버가 정상적으로 작동하고 있습니다.</p>
     <div style={{ marginTop: '60px' }}>
       <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500' }}>← 돌아가기</Link>
     </div>

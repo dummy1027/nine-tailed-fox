@@ -8,7 +8,14 @@
   --paradox-end: #cb6ce6;
   --paradox-gradient: linear-gradient(135deg, var(--paradox-start) 0%, var(--paradox-end) 100%);
 
-  /* 2. 기존 구조에서 사용하던 변수 매핑 */
+  /* 2. 테마 변수 (다크/라이트 모드 대응) */
+  --theme-bg: #ffffff;
+  --theme-text: #1c1c1e;
+  --theme-surface: #f2f2f7;
+  --theme-border: #e5e5ea;
+  --theme-secondary-text: #8e8e93;
+
+  /* 3. 기존 구조에서 사용하던 변수 매핑 */
   --accent: var(--tesla-blue);
   --accent-bg: #f4f4f4;
   --accent-border: var(--paradox-end);
@@ -17,7 +24,27 @@
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* 3. 새로 추가된 공동 클래스 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-bg: #000000;
+    --theme-text: #ffffff;
+    --theme-surface: #1c1c1e;
+    --theme-border: #2c2c2e;
+    --theme-secondary-text: #8e8e93;
+    --text-h: #ffffff; /* h1, h2용 변수 업데이트 */
+  }
+}
+
+body {
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--theme-text) !important;
+}
+
 .text-gradient {
   /* 그라데이션 설정 */
   background: linear-gradient(to right, #004aad, #cb6ce6);
@@ -66,7 +93,7 @@
 /* 커뮤니티 섹션 전체 컨테이너 */
 .community-section {
   padding: 60px 20px;
-  background-color: var(--carbon-dark);
+  background-color: var(--theme-bg);
   /* 배경은 유지 */
   display: flex;
   justify-content: center;
@@ -77,7 +104,7 @@
   width: 100%;
   max-width: 800px;
   min-height: 250px;
-  background: #1c1c1e;
+  background: var(--theme-surface);
   /* 카드 전용 배경색 */
   border-radius: 30px;
   /* 아주 둥근 모서리 */
@@ -100,13 +127,13 @@
 
 /* 카드 내부 콘텐츠 */
 .community-content h2 {
-  color: white;
+  color: var(--theme-text);
   font-size: 1.8rem;
   margin: 10px 0;
 }
 
 .community-content p {
-  color: #8e8e93;
+  color: var(--theme-secondary-text);
   margin-bottom: 20px;
 }
 
