@@ -132,9 +132,10 @@
 /* 5. 네비게이션 바 정렬 */
 .nav-bar {
   display: flex;
+  justify-content: space-between; /* 로고와 메뉴 사이 공간 확보 */
   align-items: center;
-  padding: 20px 40px;
-  margin-bottom: 20px;
+  padding: 10px 40px;     /* 좌우 여유 공간 */
+  overflow: hidden;       /* 삐져나감 방지 */
 }
 
 .nav-bar .logo {
@@ -142,11 +143,17 @@
 }
 
 .nav-menu {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateY(-5px);
+  display: flex;          /* 가로로 나열 */
+  flex-wrap: nowrap;      /* 절대 줄바꿈 금지 */
+  align-items: center;    /* 수직 중앙 정렬 */
+  white-space: nowrap;    /* 텍스트 줄바꿈 방지 */
+}
+
+.nav-menu a {
+  margin: 0 15px;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;         /* 공간이 부족해도 크기 줄이지 않음 */
 }
 
 .nav-bar::after {

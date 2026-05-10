@@ -4,37 +4,7 @@ import './App.css';
 import CPreview from './CPreview';
 import logo from './assets/logo.png';
 
-// --- 파트 1: 왼쪽 외곽 배치 지뢰찾기 (위치 고정) ---
-const Minesweeper = () => {
-  return (
-    <div className="minesweeper-box" style={{
-      position: 'absolute',
-      left: '-380px',      // 중앙 컨테이너 기준 왼쪽으로 멀리 배치
-      top: '50px',
-      width: '320px',
-      height: '380px',
-      backgroundColor: '#1c1c1e',
-      borderRadius: '25px',
-      border: '1px solid #333',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: '#8e8e93',
-      boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-      zIndex: 10
-    }}>
-      <div style={{ fontSize: '40px', marginBottom: '10px' }}>💣</div>
-      <h3 style={{ color: 'white', margin: '5px 0' }}>Minesweeper</h3>
-      <p style={{ fontSize: '12px', marginBottom: '20px' }}>논리력 테스트 존</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-        {[...Array(16)].map((_, i) => (
-          <div key={i} style={{ width: '35px', height: '35px', backgroundColor: '#2c2c2e', borderRadius: '8px' }}></div>
-        ))}
-      </div>
-    </div>
-  );
-};
+
 
 // --- 파트 2: 메인 페이지 (Home) ---
 const Home = ({ message }) => {
@@ -49,9 +19,6 @@ const Home = ({ message }) => {
         padding: '100px 0',
         position: 'relative' // Minesweeper 배치의 기준점
       }}>
-
-        {/* 지뢰찾기는 왼쪽 빈 공간에 배치 */}
-        <Minesweeper />
 
         {/* 중앙 Paradox 텍스트 영역 */}
         <div className="hero-content" style={{ textAlign: 'center', zIndex: 5 }}>
@@ -122,6 +89,16 @@ const Workbook = () => (
   </div>
 );
 
+const ServerStatus = () => (
+  <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
+    <h1 className="text-gradient" style={{ fontSize: '50px' }}>서버 상태</h1>
+    <p style={{ color: '#8e8e93', marginTop: '20px', fontSize: '18px' }}>서버 상태 확인 페이지입니다. 지금은 준비중에 있습니다.</p>
+    <div style={{ marginTop: '60px' }}>
+      <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500' }}>← 돌아가기</Link>
+    </div>
+  </div>
+);
+
 // --- 파트 4: 앱 설정 ---
 function App() {
   const [message, setMessage] = useState("Loading...");
@@ -130,7 +107,7 @@ function App() {
     fetch('http://localhost:5000/api/test')
       .then(res => res.json())
       .then(data => setMessage(data.result))
-      .catch(err => setMessage("서버 연결 필요 🦊"));
+      .catch(err => setMessage(""));
   }, []);
 
   return (
@@ -143,6 +120,7 @@ function App() {
           <Link to="/basics" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>C언어 기초</Link>
           <Link to="/community" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>커뮤니티</Link>
           <Link to="/workbook" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>문제집</Link>
+          <Link to="/server-status" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>서버 상태</Link>
         </div>
       </nav>
 
@@ -151,6 +129,7 @@ function App() {
         <Route path="/basics" element={<Basics />} />
         <Route path="/community" element={<Community />} />
         <Route path="/workbook" element={<Workbook />} />
+        <Route path="/server-status" element={<ServerStatus />} />
         <Route path="/c-preview" element={<CPreview />} />
       </Routes>
     </Router>
