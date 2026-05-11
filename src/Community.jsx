@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { supabase } from './supabaseClient';
 
 const Community = () => {
   const [posts, setPosts] = useState([]);
@@ -29,8 +30,13 @@ const Community = () => {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/posts');
-      const data = await res.json();
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+
       // DB 필드명(text_align)을 JS 필드명(textAlign)으로 변환
       const mappedData = data.map(p => ({
         ...p,
@@ -71,8 +77,13 @@ const Community = () => {
   const fetchComments = async (postId) => {
     setCommentsLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/${postId}/comments`);
-      const data = await res.json();
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
       setComments(data);
     } catch (err) {
       console.error('댓글 로드 실패:', err);
@@ -89,22 +100,21 @@ const Community = () => {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/${selectedPost.id}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: commentAuthor, content: commentContent })
-      });
+      const { error } = await supabase
+        .from('comments')
+        .insert([{ 
+          post_id: selectedPost.id, 
+          author: commentAuthor, 
+          content: commentContent 
+        }]);
 
-      if (res.ok) {
-        setCommentContent('');
-        fetchComments(selectedPost.id);
-      } else {
-        const errorData = await res.json();
-        alert(`댓글 등록 실패: ${errorData.error}`);
-      }
+      if (error) throw error;
+
+      setCommentContent('');
+      fetchComments(selectedPost.id);
     } catch (err) {
       console.error('댓글 작성 실패:', err);
-      alert('댓글 등록 중 오류가 발생했습니다. 서버 상태나 DB 테이블 생성을 확인해주세요.');
+      alert(`댓글 등록 실패: ${err.message}`);
     }
   };
 
@@ -115,27 +125,23 @@ const Community = () => {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/${selectedPost.id}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+      const { error } = await supabase
+        .from('comments')
+        .insert([{ 
           author: replyAuthor, 
           content: replyContent, 
-          parent_id: parentId 
-        })
-      });
+          parent_id: parentId,
+          post_id: selectedPost.id
+        }]);
 
-      if (res.ok) {
-        setReplyContent('');
-        setReplyingTo(null);
-        fetchComments(selectedPost.id);
-      } else {
-        const errorData = await res.json();
-        alert(`답글 등록 실패: ${errorData.error}`);
-      }
+      if (error) throw error;
+
+      setReplyContent('');
+      setReplyingTo(null);
+      fetchComments(selectedPost.id);
     } catch (err) {
       console.error('답글 작성 실패:', err);
-      alert('답글 등록 중 오류가 발생했습니다.');
+      alert(`답글 등록 실패: ${err.message}`);
     }
   };
 
@@ -146,41 +152,42 @@ const Community = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, author, textAlign: alignment })
-      });
+      const { error } = await supabase
+        .from('posts')
+        .insert([{ 
+          title, 
+          content, 
+          author, 
+          text_align: alignment 
+        }]);
 
-      if (res.ok) {
-        await fetchPosts(); // 목록 새로고침
-        setTitle('');
-        setContent('');
-        setAuthor('');
-        setView('list');
-      } else {
-        const errorData = await res.json();
-        throw new Error(errorData.error || '서버 응답 오류');
-      }
+      if (error) throw error;
+
+      await fetchPosts(); // 목록 새로고침
+      setTitle('');
+      setContent('');
+      setAuthor('');
+      setView('list');
     } catch (err) {
       console.error('글 작성 실패:', err);
-      alert(`서버 오류: ${err.message}\n(아까 드린 SQL을 Supabase에서 실행하셨는지 확인해주세요!)`);
+      alert(`게시글 등록 실패: ${err.message}`);
     }
   };
 
   const openDetail = async (post) => {
     setSearchParams({ id: post.id });
 
-    // 조회수 업데이트 (API 호출)
+    // 조회수 업데이트 (Supabase 직접 호출)
     try {
       const newViews = (post.views || 0) + 1;
-      await fetch(`http://localhost:5000/api/posts/${post.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ views: newViews })
-      });
+      const { error } = await supabase
+        .from('posts')
+        .update({ views: newViews })
+        .eq('id', post.id);
 
-      // 로컬 상태도 살짝 업데이트해서 실시간 느낌 주기
+      if (error) throw error;
+
+      // 로컬 상태 업데이트
       setPosts(posts.map(p => p.id === post.id ? { ...p, views: newViews } : p));
     } catch (err) {
       console.error('조회수 업데이트 실패:', err);
@@ -197,23 +204,22 @@ const Community = () => {
     const newLikes = (post?.likes || 0) + 1;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/posts/${postId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ likes: newLikes })
-      });
+      const { error } = await supabase
+        .from('posts')
+        .update({ likes: newLikes })
+        .eq('id', postId);
 
-      if (res.ok) {
-        // 좋아요 목록 업데이트 (로컬스토리지 유지 - 중복 방지용)
-        const newLikedPosts = [...likedPosts, postId];
-        setLikedPosts(newLikedPosts);
-        localStorage.setItem('paradox_liked_posts', JSON.stringify(newLikedPosts));
+      if (error) throw error;
 
-        // 전체 목록 및 선택된 글 업데이트
-        setPosts(posts.map(p => p.id === postId ? { ...p, likes: newLikes } : p));
-        if (selectedPost && selectedPost.id === postId) {
-          setSelectedPost({ ...selectedPost, likes: newLikes });
-        }
+      // 좋아요 목록 업데이트
+      const newLikedPosts = [...likedPosts, postId];
+      setLikedPosts(newLikedPosts);
+      localStorage.setItem('paradox_liked_posts', JSON.stringify(newLikedPosts));
+
+      // 전체 목록 및 선택된 글 업데이트
+      setPosts(posts.map(p => p.id === postId ? { ...p, likes: newLikes } : p));
+      if (selectedPost && selectedPost.id === postId) {
+        setSelectedPost({ ...selectedPost, likes: newLikes });
       }
     } catch (err) {
       console.error('좋아요 실패:', err);
