@@ -82,15 +82,158 @@ const Workbook = () => (
   </div>
 );
 
-const ServerStatus = () => (
-  <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
-    <h1 className="text-gradient" style={{ fontSize: '50px' }}>Server Status</h1>
-    <p style={{ color: 'var(--theme-secondary-text)', marginTop: '20px', fontSize: '18px' }}>현재 Paradox 서버가 정상적으로 작동하고 있습니다.</p>
-    <div style={{ marginTop: '60px' }}>
-      <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500' }}>← 돌아가기</Link>
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Activity, CheckCircle2, XCircle, Clock, Wifi, Image, Globe } from 'lucide-react';
+
+const servers = [
+  {
+    name: 'API',
+    status: 'online',
+    uptime: 99.98,
+    latency: 42,
+    icon: Activity,
+    color: '#23a559',
+    history: Array.from({ length: 20 }, (_, i) => ({
+      time: `${i}s`,
+      value: 35 + Math.random() * 20,
+    })),
+  },
+  {
+    name: 'Media Proxy',
+    status: 'online',
+    uptime: 99.95,
+    latency: 78,
+    icon: Image,
+    color: '#23a559',
+    history: Array.from({ length: 20 }, (_, i) => ({
+      time: `${i}s`,
+      value: 65 + Math.random() * 30,
+    })),
+  },
+  {
+    name: 'Gateway',
+    status: 'degraded',
+    uptime: 98.72,
+    latency: 156,
+    icon: Globe,
+    color: '#f0b232',
+    history: Array.from({ length: 20 }, (_, i) => ({
+      time: `${i}s`,
+      value: 120 + Math.random() * 80,
+    })),
+  },
+];
+
+const statusConfig = {
+  online: { color: '#23a559', icon: CheckCircle2, label: 'Operational' },
+  offline: { color: '#ed4245', icon: XCircle, label: 'Outage' },
+  degraded: { color: '#f0b232', icon: Clock, label: 'Degraded' },
+};
+
+const ServerCard = ({ server }) => {
+  const config = statusConfig[server.status];
+  const StatusIcon = config.icon;
+  const ServerIcon = server.icon;
+
+  return (
+    <div style={{
+      backgroundColor: 'var(--theme-surface)',
+      borderRadius: '16px',
+      padding: '24px',
+      border: '1px solid var(--theme-border)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <ServerIcon size={20} color="var(--theme-secondary-text)" />
+          <span style={{ fontSize: '18px', fontWeight: '600', color: 'var(--theme-text)' }}>{server.name}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <StatusIcon size={16} color={config.color} />
+          <span style={{ fontSize: '14px', color: config.color, fontWeight: '500' }}>{config.label}</span>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+        <div>
+          <p style={{ fontSize: '12px', color: 'var(--theme-secondary-text)', marginBottom: '4px' }}>Uptime (30d)</p>
+          <p style={{ fontSize: '24px', fontWeight: '700', color: 'var(--theme-text)' }}>{server.uptime}%</p>
+        </div>
+        <div>
+          <p style={{ fontSize: '12px', color: 'var(--theme-secondary-text)', marginBottom: '4px' }}>Latency</p>
+          <p style={{ fontSize: '24px', fontWeight: '700', color: 'var(--theme-text)' }}>{server.latency}ms</p>
+        </div>
+      </div>
+
+      <div style={{ height: '120px' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={server.history}>
+            <defs>
+              <linearGradient id={`gradient-${server.name}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={server.color} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={server.color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="time" hide />
+            <YAxis hide domain={['dataMin - 10', 'dataMax + 10']} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'var(--theme-bg)',
+                border: '1px solid var(--theme-border)',
+                borderRadius: '8px',
+                color: 'var(--theme-text)',
+              }}
+              labelStyle={{ display: 'none' }}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={server.color}
+              strokeWidth={2}
+              fill={`url(#gradient-${server.name})`}
+              isAnimationActive={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const ServerStatus = () => {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: 'var(--theme-bg)',
+      color: 'var(--theme-text)',
+      padding: '100px 20px',
+    }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
+          Server Status
+        </h1>
+        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '40px', fontSize: '16px' }}>
+          현재 Paradox 서버가 정상적으로 작동하고 있습니다.
+        </p>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '24px',
+        }}>
+          {servers.map((server) => (
+            <ServerCard key={server.name} server={server} />
+          ))}
+        </div>
+
+        <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
+            ← 돌아가기
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // --- 파트 4: 앱 설정 ---
 function App() {
