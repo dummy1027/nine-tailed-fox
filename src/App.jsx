@@ -83,7 +83,7 @@ const Workbook = () => (
 );
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, CheckCircle2, XCircle, Clock, Wifi, Image, Globe } from 'lucide-react';
+import { Activity, CheckCircle2, XCircle, Clock, Wifi, Image, Globe, Monitor } from 'lucide-react';
 
 const servers = [
   {
@@ -123,6 +123,19 @@ const servers = [
     })),
   },
 ];
+
+const webPages = {
+  name: 'Server Web Pages',
+  status: 'online',
+  uptime: 99.99,
+  latency: 12,
+  icon: Monitor,
+  color: '#23a559',
+  history: Array.from({ length: 20 }, (_, i) => ({
+    time: `${i}s`,
+    value: 8 + Math.random() * 8,
+  })),
+};
 
 const statusConfig = {
   online: { color: '#23a559', icon: CheckCircle2, label: 'Operational' },
@@ -217,12 +230,19 @@ const ServerStatus = () => {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '24px',
+          marginBottom: '24px',
         }}>
           {servers.map((server) => (
             <ServerCard key={server.name} server={server} />
           ))}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '320px' }}>
+            <ServerCard server={webPages} />
+          </div>
         </div>
 
         <div style={{ marginTop: '40px', textAlign: 'center' }}>
