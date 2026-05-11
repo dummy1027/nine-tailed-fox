@@ -72,6 +72,39 @@ app.get('/api/db-test', async (req, res) => {
     });
 });
 
+// --- 댓글 API ---
+
+// 특정 게시글의 댓글 조회
+app.get('/api/posts/:postId/comments', async (req, res) => {
+    const { postId } = req.params;
+    const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('post_id', postId)
+        .order('id', { ascending: true });
+        
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+// 댓글 작성
+app.post('/api/posts/:postId/comments', async (req, res) => {
+    const { postId } = req.params;
+    const { content, author, parent_id } = req.body;
+    
+    if (!content || !author) {
+        return res.status(400).json({ error: '내용과 작성자를 입력해주세요.' });
+    }
+
+    const { data, error } = await supabase
+        .from('comments')
+        .insert([{ post_id: postId, content, author, parent_id }])
+        .select();
+        
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data[0]);
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);
 });

@@ -15,6 +15,15 @@ const Community = () => {
   const [sortBy, setSortBy] = useState('latest'); // 'latest', 'views', 'likes'
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
+  
+  // Comment states
+  const [comments, setComments] = useState([]);
+  const [commentAuthor, setCommentAuthor] = useState('');
+  const [commentContent, setCommentContent] = useState('');
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null); // ID of the comment being replied to
+  const [replyAuthor, setReplyAuthor] = useState('');
+  const [replyContent, setReplyContent] = useState('');
 
   // API에서 게시글 로드
   const fetchPosts = async () => {
@@ -52,11 +61,83 @@ const Community = () => {
       if (post) {
         setSelectedPost(post);
         setView('detail');
+        fetchComments(post.id);
       }
     } else if (!postId && view === 'detail') {
       setView('list');
     }
   }, [searchParams, posts]);
+
+  const fetchComments = async (postId) => {
+    setCommentsLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${postId}/comments`);
+      const data = await res.json();
+      setComments(data);
+    } catch (err) {
+      console.error('댓글 로드 실패:', err);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!commentAuthor || !commentContent) {
+      alert('닉네임과 내용을 입력해주세요!');
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${selectedPost.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author: commentAuthor, content: commentContent })
+      });
+
+      if (res.ok) {
+        setCommentContent('');
+        fetchComments(selectedPost.id);
+      } else {
+        const errorData = await res.json();
+        alert(`댓글 등록 실패: ${errorData.error}`);
+      }
+    } catch (err) {
+      console.error('댓글 작성 실패:', err);
+      alert('댓글 등록 중 오류가 발생했습니다. 서버 상태나 DB 테이블 생성을 확인해주세요.');
+    }
+  };
+
+  const handleReplySubmit = async (parentId) => {
+    if (!replyAuthor || !replyContent) {
+      alert('닉네임과 답글 내용을 입력해주세요!');
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${selectedPost.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          author: replyAuthor, 
+          content: replyContent, 
+          parent_id: parentId 
+        })
+      });
+
+      if (res.ok) {
+        setReplyContent('');
+        setReplyingTo(null);
+        fetchComments(selectedPost.id);
+      } else {
+        const errorData = await res.json();
+        alert(`답글 등록 실패: ${errorData.error}`);
+      }
+    } catch (err) {
+      console.error('답글 작성 실패:', err);
+      alert('답글 등록 중 오류가 발생했습니다.');
+    }
+  };
 
   const savePost = async () => {
     if (!title || !content || !author) {
@@ -313,6 +394,129 @@ const Community = () => {
         >
           <span style={{ fontSize: '18px' }}>🔗</span> 공유하기
         </button>
+      </div>
+
+      {/* 댓글 섹션 */}
+      <div style={{ marginTop: '50px', borderTop: '1px solid var(--theme-border)', paddingTop: '30px', textAlign: 'left' }}>
+        <h3 style={{ fontSize: '1.5rem', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          댓글 <span style={{ fontSize: '1rem', color: '#cb6ce6', backgroundColor: 'rgba(203, 110, 230, 0.1)', padding: '2px 8px', borderRadius: '5px' }}>{comments.length}</span>
+        </h3>
+
+        {/* 댓글 작성 폼 */}
+        <form onSubmit={handleCommentSubmit} style={{ backgroundColor: 'var(--theme-surface)', padding: '25px', borderRadius: '15px', border: '1px solid var(--theme-border)', marginBottom: '30px', textAlign: 'left' }}>
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+            <input
+              type="text"
+              placeholder="닉네임"
+              value={commentAuthor}
+              onChange={(e) => setCommentAuthor(e.target.value)}
+              style={{ padding: '10px 15px', borderRadius: '8px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', width: '200px' }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <textarea
+              placeholder="댓글을 남겨보세요..."
+              value={commentContent}
+              onChange={(e) => setCommentContent(e.target.value)}
+              style={{ flex: 1, padding: '15px', borderRadius: '8px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', resize: 'none', height: '80px', textAlign: 'left' }}
+            />
+            <button
+              type="submit"
+              style={{ padding: '0 30px', borderRadius: '8px', backgroundColor: '#cb6ce6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              등록
+            </button>
+          </div>
+        </form>
+
+        {/* 댓글 목록 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', textAlign: 'left' }}>
+          {commentsLoading ? (
+            <div style={{ color: 'var(--theme-secondary-text)', textAlign: 'center', padding: '20px' }}>댓글을 불러오는 중...</div>
+          ) : comments.length === 0 ? (
+            <div style={{ color: 'var(--theme-secondary-text)', textAlign: 'center', padding: '40px', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '15px' }}>첫 댓글을 남겨보세요!</div>
+          ) : (
+            // 재귀적으로 댓글 렌더링
+            (() => {
+              const renderComments = (parentId = null, depth = 0) => {
+                return comments
+                  .filter(c => c.parent_id === parentId)
+                  .map(comment => (
+                    <div key={comment.id} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginLeft: depth > 0 ? (depth > 3 ? '20px' : '40px') : '0' }}>
+                      {/* 댓글 본체 */}
+                      <div style={{ display: 'flex', gap: '12px', animation: 'fadeIn 0.3s ease' }}>
+                        {depth > 0 && <div style={{ color: 'var(--theme-border)', fontSize: '14px', marginTop: '8px' }}>└</div>}
+                        <div style={{ 
+                          width: depth === 0 ? '40px' : '32px', 
+                          height: depth === 0 ? '40px' : '32px', 
+                          borderRadius: '50%', 
+                          backgroundColor: 'var(--theme-border)', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontSize: depth === 0 ? '20px' : '16px',
+                          flexShrink: 0
+                        }}>
+                          👤
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                            <span style={{ fontWeight: 'bold', fontSize: depth === 0 ? '15px' : '14px' }}>{comment.author}</span>
+                            <span style={{ color: 'var(--theme-secondary-text)', fontSize: '12px' }}>{new Date(comment.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <div style={{ color: 'var(--theme-text)', lineHeight: '1.5', fontSize: depth === 0 ? '16px' : '15px', marginBottom: '8px' }}>
+                            {comment.content}
+                          </div>
+                          <button 
+                            onClick={() => {
+                              if (replyingTo === comment.id) {
+                                setReplyingTo(null);
+                              } else {
+                                setReplyingTo(comment.id);
+                                if (!replyAuthor && commentAuthor) setReplyAuthor(commentAuthor);
+                              }
+                            }}
+                            style={{ background: 'none', border: 'none', color: '#cb6ce6', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', padding: '0' }}
+                          >
+                            답글 달기
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 답글 입력창 (해당 댓글 바로 아래) */}
+                      {replyingTo === comment.id && (
+                        <div style={{ marginLeft: depth === 0 ? '52px' : '44px', backgroundColor: 'rgba(203, 110, 230, 0.05)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(203, 110, 230, 0.2)' }}>
+                          <div style={{ marginBottom: '10px' }}>
+                            <input
+                              type="text"
+                              placeholder="닉네임"
+                              value={replyAuthor}
+                              onChange={(e) => setReplyAuthor(e.target.value)}
+                              style={{ padding: '8px 12px', borderRadius: '6px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', width: '150px', fontSize: '13px' }}
+                            />
+                          </div>
+                          <textarea
+                            placeholder="답글을 남겨보세요..."
+                            value={replyContent}
+                            onChange={(e) => setReplyContent(e.target.value)}
+                            style={{ width: '100%', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', resize: 'none', height: '60px', marginBottom: '10px', textAlign: 'left' }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button onClick={() => setReplyingTo(null)} style={{ padding: '8px 15px', borderRadius: '6px', background: 'none', border: '1px solid var(--theme-border)', color: 'var(--theme-secondary-text)', fontSize: '13px', cursor: 'pointer' }}>취소</button>
+                            <button onClick={() => handleReplySubmit(comment.id)} style={{ padding: '8px 20px', borderRadius: '6px', backgroundColor: '#cb6ce6', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>등록</button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 자식 댓글들 (재귀 호출) */}
+                      {renderComments(comment.id, depth + 1)}
+                    </div>
+                  ));
+              };
+              return renderComments();
+            })()
+          )}
+        </div>
       </div>
     </div>
   );
