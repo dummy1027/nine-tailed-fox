@@ -56,13 +56,77 @@ const Basics = () => {
   return (
     <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
       <h1 className="text-gradient" style={{ fontSize: '50px' }}>C언어 기초</h1>
+
       <div style={{ maxWidth: '800px', margin: '40px auto', textAlign: 'left', backgroundColor: 'var(--theme-surface)', padding: '40px', borderRadius: '20px', color: 'var(--theme-text)', border: '1px solid var(--theme-border)' }}>
         <h3>1. Hello, World!</h3>
         <p style={{ color: '#8e8e93' }}>모든 프로그래밍의 시작은 출력부터입니다.</p>
-        <code style={{ display: 'block', backgroundColor: '#000', padding: '20px', borderRadius: '10px', marginTop: '10px', color: '#cb6ce6' }}>
-          printf("Hello, World!");
+        <code style={{ display: 'block', backgroundColor: '#000', padding: '20px', borderRadius: '10px', marginTop: '10px', color: '#cb6ce6', whiteSpace: 'pre', fontFamily: 'Consolas, Monaco, monospace', lineHeight: '1.6' }}>
+          {`#include <stdio.h>
+
+int main() {
+    printf("Hello, World!");
+    return 0;
+}`}
         </code>
       </div>
+
+      <div style={{ maxWidth: '800px', margin: '40px auto', textAlign: 'left', backgroundColor: 'var(--theme-surface)', padding: '40px', borderRadius: '20px', color: 'var(--theme-text)', border: '1px solid var(--theme-border)' }}>
+        <h3>2. 변수 (Variable)</h3>
+        <p style={{ color: '#8e8e93' }}>변수는 데이터를 저장하는 공간입니다. C언어에서는 다양한 타입의 변수를 사용할 수 있습니다.</p>
+        <code style={{ display: 'block', backgroundColor: '#000', padding: '20px', borderRadius: '10px', marginTop: '10px', color: '#cb6ce6', whiteSpace: 'pre', fontFamily: 'Consolas, Monaco, monospace', lineHeight: '1.6' }}>
+          {`#include <stdio.h>
+
+int main() {
+    int age = 20;          // 정수형 변수
+    float height = 175.5;  // 실수형 변수
+    char grade = 'A';      // 문자형 변수
+
+    printf("나이: %d\\n", age);
+    printf("키: %.1f\\n", height);
+    printf("학점: %c\\n", grade);
+    return 0;
+}`}
+        </code>
+        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(46, 204, 113, 0.1)', borderRadius: '10px', borderLeft: '4px solid #2ecc71' }}>
+          <p style={{ color: '#2ecc71', fontSize: '14px' }}><strong>주요 데이터 타입:</strong></p>
+          <ul style={{ color: '#8e8e93', fontSize: '14px', marginTop: '10px', paddingLeft: '20px' }}>
+            <li><code style={{ color: '#3498db' }}>int</code> - 정수 (1, 2, 100, -5)</li>
+            <li><code style={{ color: '#3498db' }}>float</code> - 실수 (3.14, -0.5)</li>
+            <li><code style={{ color: '#3498db' }}>double</code> - 더 정밀한 실수</li>
+            <li><code style={{ color: '#3498db' }}>char</code> - 문자 ('A', 'b', '1')</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: '800px', margin: '40px auto', textAlign: 'left', backgroundColor: 'var(--theme-surface)', padding: '40px', borderRadius: '20px', color: 'var(--theme-text)', border: '1px solid var(--theme-border)' }}>
+        <h3>3. 입력 (scanf)</h3>
+        <p style={{ color: '#8e8e93' }}>scanf는 사용자로부터 입력을 받을 때 사용합니다. printf와 유사하지만, 화면에 출력하는 대신 사용자가 입력한 값을 변수에 저장합니다.</p>
+        <code style={{ display: 'block', backgroundColor: '#000', padding: '20px', borderRadius: '10px', marginTop: '10px', color: '#cb6ce6', whiteSpace: 'pre', fontFamily: 'Consolas, Monaco, monospace', lineHeight: '1.6' }}>
+          {`#include <stdio.h>
+
+int main() {
+    int age;
+    printf("나이를 입력하세요: ");
+    scanf("%d", &age);
+    printf("당신의 나이는 %d세입니다.\\n", age);
+    return 0;
+}`}
+        </code>
+        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(155, 89, 182, 0.1)', borderRadius: '10px', borderLeft: '4px solid #9b59b6' }}>
+          <p style={{ color: '#9b59b6', fontSize: '14px' }}><strong>scanf 서식 문자:</strong></p>
+          <ul style={{ color: '#8e8e93', fontSize: '14px', marginTop: '10px', paddingLeft: '20px' }}>
+            <li><code style={{ color: '#e74c3c' }}>%d</code> - 정수 입력</li>
+            <li><code style={{ color: '#e74c3c' }}>%f</code> - 실수 입력</li>
+            <li><code style={{ color: '#e74c3c' }}>%lf</code> - double형 실수 입력</li>
+            <li><code style={{ color: '#e74c3c' }}>%c</code> - 문자 입력</li>
+            <li><code style={{ color: '#e74c3c' }}>%s</code> - 문자열 입력</li>
+          </ul>
+        </div>
+        <div style={{ marginTop: '15px', padding: '15px', backgroundColor: 'rgba(231, 76, 60, 0.1)', borderRadius: '10px', borderLeft: '4px solid #e74c3c' }}>
+          <p style={{ color: '#e74c3c', fontSize: '14px' }}><strong>⚠️ 주의:</strong> scanf에서 변수 앞에 <code>&</code>를 반드시 붙여야 합니다. 이것은 변수의 주소를 참조하는 것입니다.</p>
+        </div>
+      </div>
+
       <div style={{ marginTop: '60px' }}>
         <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '18px', fontWeight: '500' }}>← 돌아가기</Link>
       </div>
@@ -81,6 +145,88 @@ const Workbook = () => (
     </div>
   </div>
 );
+
+const Ranking = () => {
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
+          Ranking
+        </h1>
+        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '30px', fontSize: '16px' }}>
+          다른 사용자들과 점수를 비교하고<br />순위를 확인하세요!
+        </p>
+
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '30px' }}>
+          <button
+            style={{
+              flex: 1,
+              padding: '16px 24px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #cb6ce6 0%, #9b59b6 100%)',
+              color: 'white',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(203, 110, 230, 0.3)',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.02)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(203, 110, 230, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(203, 110, 230, 0.3)';
+            }}
+          >
+            🎲 무작위 배틀
+          </button>
+
+          <button
+            style={{
+              flex: 1,
+              padding: '16px 24px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--theme-surface)',
+              color: 'var(--theme-text)',
+              border: '1px solid var(--theme-border)',
+              fontSize: '16px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-surface)'}
+          >
+            🔐 비공개 배틀
+          </button>
+        </div>
+
+        <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 120px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
+            <div>Rank</div>
+            <div>User</div>
+            <div style={{ textAlign: 'center' }}>Score</div>
+            <div style={{ textAlign: 'center' }}>Solved</div>
+            <div style={{ textAlign: 'center' }}>Streak</div>
+          </div>
+
+          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>
+            아직 사람이 없어요 😢
+          </div>
+        </div>
+
+        <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
+            ← 돌아가기
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, CheckCircle2, XCircle, Clock, Wifi, Image, Globe, Monitor } from 'lucide-react';
@@ -276,6 +422,7 @@ function App() {
           <Link to="/basics" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>C언어 기초</Link>
           <Link to="/community" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>커뮤니티</Link>
           <Link to="/workbook" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>문제집</Link>
+          <Link to="/ranking" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>랭킹</Link>
           <Link to="/server-status" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>서버 상태</Link>
         </div>
       </nav>
@@ -285,6 +432,7 @@ function App() {
         <Route path="/basics" element={<Basics />} />
         <Route path="/community" element={<Community />} />
         <Route path="/workbook" element={<Workbook />} />
+        <Route path="/ranking" element={<Ranking />} />
         <Route path="/server-status" element={<ServerStatus />} />
         <Route path="/c-preview" element={<CPreview />} />
       </Routes>
