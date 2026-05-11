@@ -147,62 +147,28 @@ const Workbook = () => (
 );
 
 const Ranking = () => {
+  const [rankings, setRankings] = useState([
+    { rank: 1, username: 'coder_master', score: 9850, solved: 156, streak: 45 },
+    { rank: 2, username: 'algo_king', score: 9720, solved: 148, streak: 38 },
+    { rank: 3, username: 'bit_wizard', score: 9580, solved: 142, streak: 52 },
+    { rank: 4, username: 'pointer_guru', score: 9340, solved: 135, streak: 29 },
+    { rank: 5, username: 'syntax_hunter', score: 9100, solved: 128, streak: 21 },
+    { rank: 6, username: 'memory_lover', score: 8950, solved: 121, streak: 33 },
+    { rank: 7, username: 'recursive_ninja', score: 8720, solved: 115, streak: 18 },
+    { rank: 8, username: 'debug_hero', score: 8590, solved: 108, streak: 25 },
+    { rank: 9, username: 'stack_overflow', score: 8340, solved: 102, streak: 15 },
+    { rank: 10, username: 'heap_seeker', score: 8100, solved: 95, streak: 12 },
+  ]);
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
           Ranking
         </h1>
-        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '30px', fontSize: '16px' }}>
-          다른 사용자들과 점수를 비교하고<br />순위를 확인하세요!
+        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '40px', fontSize: '16px' }}>
+          다른 사용자들과 점수를 비교하고 순위를 확인하세요!
         </p>
-
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '30px' }}>
-          <button
-            style={{
-              flex: 1,
-              padding: '16px 24px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #cb6ce6 0%, #9b59b6 100%)',
-              color: 'white',
-              border: 'none',
-              fontSize: '16px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(203, 110, 230, 0.3)',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.02)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(203, 110, 230, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(203, 110, 230, 0.3)';
-            }}
-          >
-            🎲 무작위 배틀
-          </button>
-
-          <button
-            style={{
-              flex: 1,
-              padding: '16px 24px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--theme-surface)',
-              color: 'var(--theme-text)',
-              border: '1px solid var(--theme-border)',
-              fontSize: '16px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-surface)'}
-          >
-            🔐 비공개 배틀
-          </button>
-        </div>
 
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 120px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
@@ -213,9 +179,40 @@ const Ranking = () => {
             <div style={{ textAlign: 'center' }}>Streak</div>
           </div>
 
-          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>
-            아직 사람이 없어요 😢
-          </div>
+          {rankings.map((user, index) => (
+            <div
+              key={user.rank}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '80px 1fr 120px 120px 100px',
+                padding: '16px 20px',
+                borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none',
+                alignItems: 'center',
+                transition: 'background 0.2s',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <div style={{ fontWeight: '700' }}>
+                {user.rank <= 3 ? (
+                  <span style={{ color: user.rank === 1 ? '#ffd700' : user.rank === 2 ? '#c0c0c0' : '#cd7f32' }}>
+                    {user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'} {user.rank}
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--theme-secondary-text)' }}>{user.rank}</span>
+                )}
+              </div>
+              <div style={{ fontWeight: '500' }}>{user.username}</div>
+              <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{user.score.toLocaleString()}</div>
+              <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>{user.solved}</div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
+                  🔥 {user.streak}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div style={{ marginTop: '40px', textAlign: 'center' }}>
