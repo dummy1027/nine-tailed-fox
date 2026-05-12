@@ -1879,6 +1879,7 @@ const ServerCard = ({ server, formatUptime }) => {
   const StatusIcon = config.icon;
   const ServerIcon = server.icon || Activity;
   const serverColor = server.color || '#23a559';
+  const gradientId = server.name.replace(/[^a-zA-Z0-9]/g, '_');
 
   return (
     <div style={{
@@ -1933,9 +1934,9 @@ const ServerCard = ({ server, formatUptime }) => {
 
       <div style={{ height: '100px' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={server.history}>
+          <AreaChart data={server.history || []}>
             <defs>
-              <linearGradient id={`gradient-${server.name}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`gradient-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={serverColor} stopOpacity={0.4} />
                 <stop offset="100%" stopColor={serverColor} stopOpacity={0.05} />
               </linearGradient>
@@ -1960,7 +1961,7 @@ const ServerCard = ({ server, formatUptime }) => {
               dataKey="value"
               stroke={serverColor}
               strokeWidth={2}
-              fill={`url(#gradient-${server.name})`}
+              fill={`url(#gradient-${gradientId})`}
               isAnimationActive={false}
               dot={false}
               activeDot={{ r: 5, fill: serverColor, stroke: '#fff', strokeWidth: 2 }}
@@ -1991,17 +1992,24 @@ const ServerStatus = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setRealtimeHistory(prev => {
+        if (!prev.api || !prev.mediaProxy || !prev.gateway || !prev.webPages) return prev;
         const newHistory = {};
         const updateValue = (key, base, variance) => {
-          const lastValue = prev[key][prev[key].length - 1].value;
-          const change = (Math.random() - 0.5) * variance;
-          const newValue = Math.max(base * 0.5, Math.min(base * 1.5, lastValue + change));
-          const shifted = prev[key].slice(1);
-          shifted.push({ time: '0s', value: Math.round(newValue) });
-          for (let i = 0; i < shifted.length; i++) {
-            shifted[i].time = `${shifted.length - 1 - i}s`;
+          try {
+            const lastEntry = prev[key][prev[key].length - 1];
+            const lastValue = lastEntry ? Number(lastEntry.value) : base;
+            if (isNaN(lastValue)) return prev[key];
+            const change = (Math.random() - 0.5) * variance;
+            const newValue = Math.max(base * 0.5, Math.min(base * 1.5, lastValue + change));
+            const shifted = prev[key].slice(1);
+            shifted.push({ time: '0s', value: Math.round(newValue) });
+            for (let i = 0; i < shifted.length; i++) {
+              shifted[i].time = `${shifted.length - 1 - i}s`;
+            }
+            return shifted;
+          } catch (e) {
+            return prev[key];
           }
-          return shifted;
         };
         newHistory.api = updateValue('api', 35, 10);
         newHistory.mediaProxy = updateValue('mediaProxy', 65, 15);
