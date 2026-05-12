@@ -263,59 +263,7 @@ const Ranking = () => {
 };
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, CheckCircle2, XCircle, Clock, Wifi, Image, Globe, Monitor } from 'lucide-react';
-
-const servers = [
-  {
-    name: 'API',
-    status: 'online',
-    uptime: 99.98,
-    latency: 42,
-    icon: Activity,
-    color: '#23a559',
-    history: Array.from({ length: 20 }, (_, i) => ({
-      time: `${i}s`,
-      value: 35 + Math.random() * 20,
-    })),
-  },
-  {
-    name: 'Media Proxy',
-    status: 'online',
-    uptime: 99.95,
-    latency: 78,
-    icon: Image,
-    color: '#23a559',
-    history: Array.from({ length: 20 }, (_, i) => ({
-      time: `${i}s`,
-      value: 65 + Math.random() * 30,
-    })),
-  },
-  {
-    name: 'Gateway',
-    status: 'degraded',
-    uptime: 98.72,
-    latency: 156,
-    icon: Globe,
-    color: '#f0b232',
-    history: Array.from({ length: 20 }, (_, i) => ({
-      time: `${i}s`,
-      value: 120 + Math.random() * 80,
-    })),
-  },
-];
-
-const webPages = {
-  name: 'Server Web Pages',
-  status: 'online',
-  uptime: 99.99,
-  latency: 12,
-  icon: Monitor,
-  color: '#23a559',
-  history: Array.from({ length: 20 }, (_, i) => ({
-    time: `${i}s`,
-    value: 8 + Math.random() * 8,
-  })),
-};
+import { Activity, CheckCircle2, XCircle, Clock, Image, Globe, Monitor } from 'lucide-react';
 
 const statusConfig = {
   online: { color: '#23a559', icon: CheckCircle2, label: 'Operational' },
@@ -323,10 +271,11 @@ const statusConfig = {
   degraded: { color: '#f0b232', icon: Clock, label: 'Degraded' },
 };
 
-const ServerCard = ({ server }) => {
-  const config = statusConfig[server.status];
+const ServerCard = ({ server, formatUptime }) => {
+  const config = statusConfig[server.status] || { color: '#23a559', icon: CheckCircle2, label: 'Unknown' };
   const StatusIcon = config.icon;
-  const ServerIcon = server.icon;
+  const ServerIcon = server.icon || Activity;
+  const serverColor = server.color || '#23a559';
 
   return (
     <div style={{
@@ -346,44 +295,72 @@ const ServerCard = ({ server }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-        <div>
-          <p style={{ fontSize: '12px', color: 'var(--theme-secondary-text)', marginBottom: '4px' }}>Uptime (30d)</p>
-          <p style={{ fontSize: '24px', fontWeight: '700', color: 'var(--theme-text)' }}>{server.uptime}%</p>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
         <div>
           <p style={{ fontSize: '12px', color: 'var(--theme-secondary-text)', marginBottom: '4px' }}>Latency</p>
-          <p style={{ fontSize: '24px', fontWeight: '700', color: 'var(--theme-text)' }}>{server.latency}ms</p>
+          <p style={{ fontSize: '24px', fontWeight: '700', color: server.latency > 100 ? '#f87171' : '#4ade80' }}>{server.latency}ms</p>
+        </div>
+        <div>
+          <p style={{ fontSize: '12px', color: 'var(--theme-secondary-text)', marginBottom: '4px' }}>CPU Load</p>
+          <p style={{ fontSize: '24px', fontWeight: '700', color: parseFloat(server.cpu) > 2 ? '#f87171' : '#4ade80' }}>{server.cpu}</p>
         </div>
       </div>
 
-      <div style={{ height: '120px' }}>
+      {server.memory && (
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>Memory</span>
+            <span style={{ fontSize: '12px', color: 'var(--theme-text)' }}>{server.memory.used}MB / {server.memory.total}MB</span>
+          </div>
+          <div style={{ height: '6px', backgroundColor: 'var(--theme-bg)', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${server.memory.percent}%`,
+              backgroundColor: parseFloat(server.memory.percent) > 80 ? '#f87171' : parseFloat(server.memory.percent) > 60 ? '#f0b232' : '#4ade80',
+              borderRadius: '3px',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+        </div>
+      )}
+
+      <div style={{ fontSize: '11px', color: 'var(--theme-secondary-text)', marginBottom: '16px' }}>
+        서버 가동 시간: {formatUptime ? formatUptime(server.uptime) : server.uptime}
+      </div>
+
+      <div style={{ height: '100px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={server.history}>
             <defs>
               <linearGradient id={`gradient-${server.name}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={server.color} stopOpacity={0.3} />
-                <stop offset="100%" stopColor={server.color} stopOpacity={0} />
+                <stop offset="0%" stopColor={serverColor} stopOpacity={0.4} />
+                <stop offset="100%" stopColor={serverColor} stopOpacity={0.05} />
               </linearGradient>
             </defs>
             <XAxis dataKey="time" hide />
             <YAxis hide domain={['dataMin - 10', 'dataMax + 10']} />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'var(--theme-bg)',
-                border: '1px solid var(--theme-border)',
+                backgroundColor: '#1c1c1e',
+                border: '1px solid #3a3a3c',
                 borderRadius: '8px',
-                color: 'var(--theme-text)',
+                color: '#fff',
+                fontSize: '12px',
+                padding: '8px 12px'
               }}
-              labelStyle={{ display: 'none' }}
+              labelStyle={{ color: '#8e8e93', marginBottom: '4px' }}
+              formatter={(value) => [`${value}ms`, 'Latency']}
+              labelFormatter={(label) => `${label} 전`}
             />
             <Area
               type="monotone"
               dataKey="value"
-              stroke={server.color}
+              stroke={serverColor}
               strokeWidth={2}
               fill={`url(#gradient-${server.name})`}
               isAnimationActive={false}
+              dot={false}
+              activeDot={{ r: 5, fill: serverColor, stroke: '#fff', strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -393,6 +370,64 @@ const ServerCard = ({ server }) => {
 };
 
 const ServerStatus = () => {
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [realtimeHistory, setRealtimeHistory] = useState({
+    api: Array.from({ length: 20 }, (_, i) => ({ time: `${i}s`, value: 30 + Math.random() * 20 })),
+    mediaProxy: Array.from({ length: 20 }, (_, i) => ({ time: `${i}s`, value: 60 + Math.random() * 30 })),
+    gateway: Array.from({ length: 20 }, (_, i) => ({ time: `${i}s`, value: 120 + Math.random() * 80 })),
+    webPages: Array.from({ length: 20 }, (_, i) => ({ time: `${i}s`, value: 8 + Math.random() * 8 }))
+  });
+
+  const serverData = {
+    api: { name: 'API', status: 'online', latency: 42, cpu: '0.85', memory: { used: 512, total: 8192, percent: '62.5' }, uptime: 86400 },
+    mediaProxy: { name: 'Media Proxy', status: 'online', latency: 78, cpu: '0.42', memory: { used: 256, total: 4096, percent: '50' }, uptime: 86400 },
+    gateway: { name: 'Gateway', status: 'online', latency: 156, cpu: '0.31', memory: { used: 128, total: 2048, percent: '45' }, uptime: 86400 },
+    webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18', memory: { used: 384, total: 4096, percent: '35' }, uptime: 86400 }
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRealtimeHistory(prev => {
+        const newHistory = {};
+        const updateValue = (key, base, variance) => {
+          const lastValue = prev[key][prev[key].length - 1].value;
+          const change = (Math.random() - 0.5) * variance;
+          const newValue = Math.max(base * 0.5, Math.min(base * 1.5, lastValue + change));
+          const shifted = prev[key].slice(1);
+          shifted.push({ time: '0s', value: Math.round(newValue) });
+          for (let i = 0; i < shifted.length; i++) {
+            shifted[i].time = `${shifted.length - 1 - i}s`;
+          }
+          return shifted;
+        };
+        newHistory.api = updateValue('api', 35, 10);
+        newHistory.mediaProxy = updateValue('mediaProxy', 65, 15);
+        newHistory.gateway = updateValue('gateway', 130, 40);
+        newHistory.webPages = updateValue('webPages', 10, 4);
+        return newHistory;
+      });
+      setLastUpdated(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatUptime = (seconds) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (days > 0) return `${days}일 ${hours}시간`;
+    if (hours > 0) return `${hours}시간 ${mins}분`;
+    return `${mins}분`;
+  };
+
+  const servers = [
+    { ...serverData.api, history: realtimeHistory.api },
+    { ...serverData.mediaProxy, history: realtimeHistory.mediaProxy },
+    { ...serverData.gateway, history: realtimeHistory.gateway }
+  ];
+
+  const webPages = { ...serverData.webPages, history: realtimeHistory.webPages };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -401,12 +436,39 @@ const ServerStatus = () => {
       padding: '100px 20px',
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
-          Server Status
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <h1 style={{
+            fontSize: '2.5rem',
+            fontWeight: '800',
+            background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            Server Status
+          </h1>
+          <div style={{ fontSize: '12px', color: 'var(--theme-secondary-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              display: 'inline-block',
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#4ade80',
+              animation: 'pulse 1.5s infinite'
+            }} />
+            실시간 모니터링
+          </div>
+        </div>
         <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '40px', fontSize: '16px' }}>
           현재 Paradox 서버가 정상적으로 작동하고 있습니다.
         </p>
+
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+          }
+        `}</style>
 
         <div style={{
           display: 'grid',
@@ -415,13 +477,13 @@ const ServerStatus = () => {
           marginBottom: '24px',
         }}>
           {servers.map((server) => (
-            <ServerCard key={server.name} server={server} />
+            <ServerCard key={server.name} server={server} formatUptime={formatUptime} />
           ))}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '320px' }}>
-            <ServerCard server={webPages} />
+            <ServerCard server={webPages} formatUptime={formatUptime} />
           </div>
         </div>
 
