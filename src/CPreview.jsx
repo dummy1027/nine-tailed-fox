@@ -14,6 +14,7 @@ const CPreview = () => {
   const [code, setCode] = useState(`#include <stdio.h>\n\nint main() {\n\n\treturn 0;\n}`);
   const [output, setOutput] = useState('');
   const [isCorrect, setIsCorrect] = useState(null);
+  const [resultType, setResultType] = useState(null);
 
   const textareaRef = useRef(null);
   const preRef = useRef(null);
@@ -27,10 +28,9 @@ const CPreview = () => {
   const problem = {
     title: 'Hello, World! 출력하기',
     description: 'printf를 사용하여 "Hello, World!"를 출력하는 코드를 완성하세요.',
-    expected: 'printf("Hello, World!");'
+    expected: 'Hello, World!'
   };
 
-  // 스크롤 동기화: 텍스트 박스를 내리면 하이라이트 배경도 같이 내려가게 함
   const handleScroll = () => {
     if (textareaRef.current && preRef.current) {
       preRef.current.scrollTop = textareaRef.current.scrollTop;
@@ -39,25 +39,28 @@ const CPreview = () => {
   };
 
   const handleRun = () => {
-    if (code.includes(problem.expected)) {
-      setOutput('Hello, World!');
-      setIsCorrect(true);
+    setResultType('run');
+    const printfMatch = code.match(/printf\s*\(\s*"([^"]*)"\s*\)/);
+    if (printfMatch) {
+      setOutput(printfMatch[1]);
     } else {
-      setOutput('출력 오류: 코드를 다시 확인하세요.');
-      setIsCorrect(false);
+      setOutput('출력 오류: printf 문을 찾을 수 없습니다.');
     }
   };
 
   const handleCheck = () => {
-    const hasCorrect = code.includes(problem.expected);
-    setIsCorrect(hasCorrect);
-    setOutput(hasCorrect ? '' : '정답이 아닙니다. 다시 시도해보세요.');
+    setResultType('check');
+    const printfMatch = code.match(/printf\s*\(\s*"([^"]*)"\s*\)/);
+    const userOutput = printfMatch ? printfMatch[1] : '';
+    setIsCorrect(userOutput === problem.expected);
+    setOutput('');
   };
 
   const handleReset = () => {
     setCode(`#include <stdio.h>\n\nint main() {\n\n\treturn 0;\n}`);
     setOutput('');
     setIsCorrect(null);
+    setResultType(null);
     setShowSuggest(false);
   };
 
@@ -436,10 +439,18 @@ const CPreview = () => {
             <button onClick={handleReset} style={{ padding: '12px 30px', backgroundColor: '#2c2c2e', color: '#8e8e93', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>초기화</button>
           </div>
 
-          {output && (
+          {resultType === 'run' && output && (
+            <div style={{ backgroundColor: '#1c1c1e', borderRadius: '10px', padding: '15px', marginTop: '15px', border: '1px solid #3a3a3c' }}>
+              <p style={{ color: '#8e8e93', fontWeight: 'bold', marginBottom: '10px' }}>출력 결과</p>
+              <p style={{ color: '#4ade80', fontFamily: 'monospace', fontSize: '14px' }}>{output}</p>
+            </div>
+          )}
+
+          {resultType === 'check' && isCorrect !== null && (
             <div style={{ backgroundColor: isCorrect ? '#0a3d0a' : '#3d0a0a', borderRadius: '10px', padding: '15px', marginTop: '15px' }}>
-              <p style={{ color: isCorrect ? '#4ade80' : '#f87171', fontWeight: 'bold' }}>{isCorrect ? '🎉 정답!' : '❌ 오답'}</p>
-              <p style={{ color: '#fff', marginTop: '10px', fontFamily: 'monospace' }}>출력: {output}</p>
+              <p style={{ color: isCorrect ? '#4ade80' : '#f87171', fontWeight: 'bold', fontSize: '16px' }}>
+                {isCorrect ? '🎉 정답!' : '❌ 오답'}
+              </p>
             </div>
           )}
         </div>
