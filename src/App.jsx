@@ -1982,15 +1982,17 @@ const ServerStatus = () => {
     webPages: Array.from({ length: 20 }, (_, i) => ({ time: `${i}s`, value: 8 + Math.random() * 8 }))
   });
 
-  const serverData = {
-    api: { name: 'API', status: 'online', latency: 42, cpu: '0.85', memory: { used: 512, total: 8192, percent: '62.5' }, uptime: 86400 },
-    mediaProxy: { name: 'Media Proxy', status: 'online', latency: 78, cpu: '0.42', memory: { used: 256, total: 4096, percent: '50' }, uptime: 86400 },
-    gateway: { name: 'Gateway', status: 'online', latency: 156, cpu: '0.31', memory: { used: 128, total: 2048, percent: '45' }, uptime: 86400 },
-    webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18', memory: { used: 384, total: 4096, percent: '35' }, uptime: 86400 }
-  };
+  const [dynamicServers, setDynamicServers] = useState({
+    api: { name: 'API', status: 'online', latency: 42, cpu: '0.85', memory: { used: 512, total: 8192, percent: '6.25' }, uptime: 86400 * 5 },
+    mediaProxy: { name: 'Media Proxy', status: 'online', latency: 78, cpu: '0.42', memory: { used: 2048, total: 4096, percent: '50.0' }, uptime: 86400 * 2 },
+    gateway: { name: 'Gateway', status: 'online', latency: 156, cpu: '0.31', memory: { used: 1024, total: 2048, percent: '45.0' }, uptime: 86400 * 12 },
+    webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18', memory: { used: 1536, total: 4096, percent: '37.5' }, uptime: 86400 * 30 }
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
+      // 1. 그래프 데이터 업데이트
+      let latestLatencies = {};
       setRealtimeHistory(prev => {
         if (!prev.api || !prev.mediaProxy || !prev.gateway || !prev.webPages) return prev;
         const newHistory = {};
@@ -1998,11 +2000,12 @@ const ServerStatus = () => {
           try {
             const lastEntry = prev[key][prev[key].length - 1];
             const lastValue = lastEntry ? Number(lastEntry.value) : base;
-            if (isNaN(lastValue)) return prev[key];
             const change = (Math.random() - 0.5) * variance;
             const newValue = Math.max(base * 0.5, Math.min(base * 1.5, lastValue + change));
             const shifted = prev[key].slice(1);
-            shifted.push({ time: '0s', value: Math.round(newValue) });
+            const roundedValue = Math.round(newValue);
+            latestLatencies[key] = roundedValue; // 현재 레이턴시 저장
+            shifted.push({ time: '0s', value: roundedValue });
             for (let i = 0; i < shifted.length; i++) {
               shifted[i].time = `${shifted.length - 1 - i}s`;
             }
@@ -2017,6 +2020,39 @@ const ServerStatus = () => {
         newHistory.webPages = updateValue('webPages', 10, 4);
         return newHistory;
       });
+
+      // 2. 수치 데이터(CPU, Latency, Memory) 업데이트
+      setDynamicServers(prev => {
+        const updateServer = (key) => {
+          const s = prev[key];
+          const cpuVar = (Math.random() - 0.5) * 0.05;
+          const newCpu = Math.max(0.05, Math.min(0.95, parseFloat(s.cpu) + cpuVar)).toFixed(2);
+          
+          const memVar = (Math.random() - 0.5) * 5; // MB 단위 변화
+          const newMemUsed = Math.max(s.memory.total * 0.1, Math.min(s.memory.total * 0.9, s.memory.used + memVar));
+          const newMemPercent = ((newMemUsed / s.memory.total) * 100).toFixed(1);
+
+          return {
+            ...s,
+            latency: latestLatencies[key] || s.latency,
+            cpu: newCpu,
+            memory: {
+              ...s.memory,
+              used: Math.round(newMemUsed),
+              percent: newMemPercent
+            },
+            uptime: s.uptime + 1 // 가동 시간 증가
+          };
+        };
+
+        return {
+          api: updateServer('api'),
+          mediaProxy: updateServer('mediaProxy'),
+          gateway: updateServer('gateway'),
+          webPages: updateServer('webPages')
+        };
+      });
+
       setLastUpdated(new Date());
     }, 1000);
     return () => clearInterval(interval);
@@ -2032,12 +2068,12 @@ const ServerStatus = () => {
   };
 
   const servers = [
-    { ...serverData.api, history: realtimeHistory.api },
-    { ...serverData.mediaProxy, history: realtimeHistory.mediaProxy },
-    { ...serverData.gateway, history: realtimeHistory.gateway }
+    { ...dynamicServers.api, history: realtimeHistory.api },
+    { ...dynamicServers.mediaProxy, history: realtimeHistory.mediaProxy },
+    { ...dynamicServers.gateway, history: realtimeHistory.gateway }
   ];
 
-  const webPages = { ...serverData.webPages, history: realtimeHistory.webPages };
+  const webPages = { ...dynamicServers.webPages, history: realtimeHistory.webPages };
 
   return (
     <div style={{
@@ -2054,7 +2090,10 @@ const ServerStatus = () => {
             background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
+            backgroundClip: 'text',
+            lineHeight: '1.4',
+            display: 'inline-block',
+            padding: '5px 0'
           }}>
             Server Status
           </h1>
