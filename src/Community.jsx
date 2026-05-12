@@ -16,6 +16,7 @@ const Community = () => {
   const [sortBy, setSortBy] = useState('latest'); // 'latest', 'views', 'likes'
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Comment states
   const [comments, setComments] = useState([]);
@@ -27,13 +28,21 @@ const Community = () => {
   const [replyContent, setReplyContent] = useState('');
 
   // API에서 게시글 로드
-  const fetchPosts = async () => {
+  const fetchPosts = async (query = '') => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let queryBuilder = supabase
         .from('posts')
         .select('*')
         .order('id', { ascending: false });
+
+      if (query.trim()) {
+        queryBuilder = queryBuilder.or(
+          `title.ilike.%${query}%,content.ilike.%${query}%,author.ilike.%${query}%`
+        );
+      }
+
+      const { data, error } = await queryBuilder;
 
       if (error) throw error;
 
@@ -48,6 +57,11 @@ const Community = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchPosts(searchQuery);
   };
 
   useEffect(() => {
@@ -262,6 +276,56 @@ const Community = () => {
             글쓰기
           </button>
         </div>
+
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+          <input
+            type="text"
+            placeholder="작성글과 작성자의 이름을 검색해보세요!"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '12px 15px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--theme-surface)',
+              border: '1px solid var(--theme-border)',
+              color: 'var(--theme-text)',
+              fontSize: '14px',
+              outline: 'none'
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              padding: '12px 25px',
+              borderRadius: '10px',
+              backgroundColor: '#cb6ce6',
+              color: 'white',
+              border: 'none',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            검색
+          </button>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); fetchPosts(); }}
+              style={{
+                padding: '12px 20px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--theme-surface)',
+                color: 'var(--theme-secondary-text)',
+                border: '1px solid var(--theme-border)',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              초기화
+            </button>
+          )}
+        </form>
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           {[
