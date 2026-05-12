@@ -379,7 +379,8 @@ const CPreview = () => {
                 backgroundColor: 'transparent',
                 pointerEvents: 'none',
                 overflow: 'hidden',
-                zIndex: 1
+                zIndex: 1,
+                textAlign: 'left'
               }}
             >
               {renderHighlightedCode()}
@@ -427,7 +428,8 @@ const CPreview = () => {
                 outline: 'none',
                 resize: 'none',
                 zIndex: 2,
-                overflow: 'auto'
+                overflow: 'auto',
+                textAlign: 'left'
               }}
             />
           </div>
