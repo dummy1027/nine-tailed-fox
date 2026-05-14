@@ -1981,6 +1981,8 @@ const ServerCard = ({ server, formatUptime }) => {
 
 const ServerStatus = () => {
   const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  // 🔽 이 부분을 추가해 주세요! (그래프가 정상적으로 나오게 해줍니다)
   const [realtimeHistory, setRealtimeHistory] = useState({
     api: Array.from({ length: 20 }, (_, i) => ({ time: `${i}s`, value: 30 + Math.random() * 20 })),
     mediaProxy: Array.from({ length: 20 }, (_, i) => ({ time: `${i}s`, value: 60 + Math.random() * 30 })),
