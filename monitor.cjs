@@ -20,7 +20,7 @@ async function updateStatus() {
 
     for (const server of servers) {
       const { error } = await supabase
-        .from('servers_status') // 테이블 이름이 'Server_Status'라면 첫글자를 대문자로 고치세요!
+        .from('servers_status') 
         .upsert({
           id: server.id,
           name: server.name,
@@ -28,9 +28,8 @@ async function updateStatus() {
           latency: Math.floor(Math.random() * 30) + 10,
           cpu: parseFloat((cpu.currentLoad / 100).toFixed(2)),
           memory_used: Math.round(mem.active / (1024 * 1024)),
-          memory_total: Math.round(mem.total / (1024 * 1024)),
-          // 🔽 여기가 핵심! uptime 대신 last_update를 쓰고 현재 시간을 보냅니다.
-          last_update: new Date().toISOString() 
+          memory_total: Math.round(mem.total / (1024 * 1024))
+          // ◀ 여기에 있던 last_update 줄을 아예 지워버리세요! 
         });
 
       if (error) console.error(`[${server.name}] 업데이트 실패:`, error.message);
