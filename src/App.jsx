@@ -1934,9 +1934,6 @@ const ServerCard = ({ server, formatUptime }) => {
         </div>
       )}
 
-      <div style={{ fontSize: '11px', color: 'var(--theme-secondary-text)', marginBottom: '16px' }}>
-        서버 가동 시간: {formatUptime ? formatUptime(server.uptime) : server.uptime}
-      </div>
 
       <div style={{ height: '100px' }}>
         <ResponsiveContainer width="100%" height="100%">
