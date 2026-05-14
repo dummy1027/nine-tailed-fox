@@ -1867,6 +1867,12 @@ const Ranking = () => {
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, CheckCircle2, XCircle, Clock, Image, Globe, Monitor } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://klnwpmhqqaokwktqtbyg.supabase.co'; 
+const supabaseKey = 'sb_publishable_tKUEGM3XejDpmPCl7S5BYg_7-Apj6Hl';
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const statusConfig = {
   online: { color: '#23a559', icon: CheckCircle2, label: 'Operational' },
@@ -1990,75 +1996,73 @@ const ServerStatus = () => {
   });
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      // 1. 그래프 데이터 업데이트
-      let latestLatencies = {};
-      setRealtimeHistory(prev => {
-        if (!prev.api || !prev.mediaProxy || !prev.gateway || !prev.webPages) return prev;
-        const newHistory = {};
-        const updateValue = (key, base, variance) => {
-          try {
-            const lastEntry = prev[key][prev[key].length - 1];
-            const lastValue = lastEntry ? Number(lastEntry.value) : base;
-            const change = (Math.random() - 0.5) * variance;
-            const newValue = Math.max(base * 0.5, Math.min(base * 1.5, lastValue + change));
-            const shifted = prev[key].slice(1);
-            const roundedValue = Math.round(newValue);
-            latestLatencies[key] = roundedValue; // 현재 레이턴시 저장
-            shifted.push({ time: '0s', value: roundedValue });
-            for (let i = 0; i < shifted.length; i++) {
-              shifted[i].time = `${shifted.length - 1 - i}s`;
-            }
-            return shifted;
-          } catch (e) {
-            return prev[key];
-          }
-        };
-        newHistory.api = updateValue('api', 35, 10);
-        newHistory.mediaProxy = updateValue('mediaProxy', 65, 15);
-        newHistory.gateway = updateValue('gateway', 130, 40);
-        newHistory.webPages = updateValue('webPages', 10, 4);
-        return newHistory;
-      });
-
-      // 2. 수치 데이터(CPU, Latency, Memory) 업데이트
-      setDynamicServers(prev => {
-        const updateServer = (key) => {
-          const s = prev[key];
-          const cpuVar = (Math.random() - 0.5) * 0.05;
-          const newCpu = Math.max(0.05, Math.min(0.95, parseFloat(s.cpu) + cpuVar)).toFixed(2);
-          
-          const memVar = (Math.random() - 0.5) * 5; // MB 단위 변화
-          const newMemUsed = Math.max(s.memory.total * 0.1, Math.min(s.memory.total * 0.9, s.memory.used + memVar));
-          const newMemPercent = ((newMemUsed / s.memory.total) * 100).toFixed(1);
-
-          return {
-            ...s,
-            latency: latestLatencies[key] || s.latency,
-            cpu: newCpu,
-            memory: {
-              ...s.memory,
-              used: Math.round(newMemUsed),
-              percent: newMemPercent
+    // 1. 처음 로딩 시 DB에서 데이터 가져오기
+    const fetchInitialStatus = async () => {
+      const { data } = await supabase.from('servers_status').select('*');
+      if (data) {
+        const newServers = {};
+        data.forEach(s => {
+          newServers[s.id] = {
+            name: s.name,
+            status: s.status,
+            latency: s.latency,
+            cpu: s.cpu,
+            memory: { 
+              used: s.memory_used, 
+              total: s.memory_total, 
+              percent: ((s.memory_used / s.memory_total) * 100).toFixed(1) 
             },
-            uptime: s.uptime + 1 // 가동 시간 증가
+            uptime: s.uptime
           };
-        };
+        });
+        setDynamicServers(prev => ({ ...prev, ...newServers }));
+      }
+    };
+    fetchInitialStatus();
 
-        return {
-          api: updateServer('api'),
-          mediaProxy: updateServer('mediaProxy'),
-          gateway: updateServer('gateway'),
-          webPages: updateServer('webPages')
-        };
-      });
+    // 2. Supabase 실시간 구독 설정
+    const subscription = supabase
+      .channel('server_updates')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'servers_status' }, (payload) => {
+        const s = payload.new;
+        
+        setDynamicServers(prev => ({
+          ...prev,
+          [s.id]: {
+            ...prev[s.id],
+            status: s.status,
+            latency: s.latency,
+            cpu: s.cpu,
+            memory: { 
+              used: s.memory_used, 
+              total: s.memory_total, 
+              percent: ((s.memory_used / s.memory_total) * 100).toFixed(1) 
+            },
+            uptime: s.uptime
+          }
+        }));
 
-      setLastUpdated(new Date());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+        setRealtimeHistory(prev => {
+          const historyKey = s.id === 'webPages' ? 'webPages' : s.id;
+          const currentHistory = prev[historyKey] || [];
+          const newHistory = [...currentHistory.slice(1), { time: '0s', value: s.latency }];
+          return {
+            ...prev,
+            [historyKey]: newHistory.map((item, i) => ({ 
+              ...item, 
+              time: `${newHistory.length - 1 - i}s` 
+            }))
+          };
+        });
+      })
+      .subscribe();
 
-  const formatUptime = (seconds) => {
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []); // 👈 깔끔하게 하나로 끝냄
+
+   const formatUptime = (seconds) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
