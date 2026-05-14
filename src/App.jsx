@@ -992,7 +992,11 @@ const Workbook = () => {
   const [showSuggest, setShowSuggest] = useState(false);
   const [suggestPos, setSuggestPos] = useState({ top: 0, left: 0 });
   const [activeLine, setActiveLine] = useState(0);
-  
+  const [solvedProblems, setSolvedProblems] = useState(() => {
+    const saved = localStorage.getItem('paradox_solved');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const textareaRef = useRef(null);
   const mirrorRef = useRef(null);
   const preRef = useRef(null);
@@ -1265,9 +1269,15 @@ const Workbook = () => {
 
     // 공백 및 줄바꿈 차이로 인한 오답 방지를 위해 trim() 적용 후 비교
     const isMatched = simulatedOutput.trim() === expectedOutput.trim();
-    
+
     setIsCorrect(isMatched);
     setOutput('');
+
+    if (isMatched && !solvedProblems.includes(selectedProblem.id)) {
+      const newSolved = [...solvedProblems, selectedProblem.id];
+      setSolvedProblems(newSolved);
+      localStorage.setItem('paradox_solved', JSON.stringify(newSolved));
+    }
   };
 
   const handleReset = () => {
@@ -1345,6 +1355,18 @@ const Workbook = () => {
                     {levelLabels[selectedLevel]}
                   </span>
                   <span style={{ color: 'var(--theme-secondary-text)', fontSize: '14px' }}>문제 {index + 1}</span>
+                  {solvedProblems.includes(problem.id) && (
+                    <span style={{
+                      backgroundColor: '#2ecc71',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '10px',
+                      fontWeight: 'bold'
+                    }}>
+                      ✓
+                    </span>
+                  )}
                 </div>
                 <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '10px', color: 'var(--theme-text)' }}>{problem.title}</h3>
                 <p style={{ color: 'var(--theme-secondary-text)', fontSize: '14px', lineHeight: '1.5' }}>{problem.description}</p>
@@ -1383,6 +1405,18 @@ const Workbook = () => {
                   {levelLabels[selectedLevel]}
                 </span>
                 <h2 style={{ fontSize: '1.8rem', fontWeight: '700' }}>{selectedProblem.title}</h2>
+                {solvedProblems.includes(selectedProblem.id) && (
+                  <span style={{
+                    backgroundColor: '#2ecc71',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: '16px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    ✓ solved
+                  </span>
+                )}
               </div>
 
               <p style={{ color: 'var(--theme-secondary-text)', fontSize: '16px', marginBottom: '30px', lineHeight: '1.6' }}>
