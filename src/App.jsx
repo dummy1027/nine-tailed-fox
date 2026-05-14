@@ -2293,17 +2293,26 @@ function App() {
   return (
     <Router>
       <nav className="nav-bar">
-        <Link to="/" className="logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-          <img src={logo} alt="Paradox Logo" className="logo-img" />
-        </Link>
-        <div className="nav-menu">
-          <Link to="/basics" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>C언어 기초</Link>
-          <Link to="/community" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>커뮤니티</Link>
-          <Link to="/workbook" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>문제집</Link>
-          <Link to="/ranking" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>랭킹</Link>
-          <Link to="/server-status" style={{ margin: '0 15px', color: 'inherit', textDecoration: 'none' }}>서버 상태</Link>
-        </div>
-      </nav>
+  {/* 1. 로고 영역 */}
+  <Link to="/" className="logo-container">
+    <img src={logo} alt="Paradox Logo" className="logo-img" />
+  </Link>
+
+  {/* 2. 중앙 메뉴 영역 */}
+  <div className="nav-menu">
+    <Link to="/basics">C언어 기초</Link>
+    <Link to="/community">커뮤니티</Link>
+    <Link to="/workbook">문제집</Link>
+    <Link to="/ranking">랭킹</Link>
+    <Link to="/server-status">서버 상태</Link>
+  </div>
+
+  {/* 3. 오른쪽 버튼 영역 */}
+  <div className="auth-buttons">
+    <button className="login-btn">로그인</button>
+    <button className="signup-btn">회원가입</button>
+  </div>
+</nav>
 
       <Routes>
         <Route path="/" element={<Home message={message} />} />
