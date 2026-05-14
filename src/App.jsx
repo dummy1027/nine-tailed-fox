@@ -47,6 +47,18 @@ const Home = ({ message }) => {
           </div>
         </div>
       </section>
+
+      {/* 서버 상태 카드 섹션 */}
+      <section className="community-section" style={{ paddingBottom: '100px' }}>
+        <div className="community-card" onClick={() => navigate('/server-status')} style={{ cursor: 'pointer', margin: '0 auto', maxWidth: '900px' }}>
+          <div className="community-content" style={{ padding: '60px', textAlign: 'center' }}>
+            <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>SERVER STATUS</span>
+            <h2 style={{ fontSize: '36px', marginTop: '10px', color: 'var(--theme-text)' }}>Paradox 서버 상태</h2>
+            <p style={{ color: 'var(--theme-secondary-text)', marginTop: '15px', fontSize: '18px' }}>서버의 운영 상태와 성능을 실시간으로 확인하세요.</p>
+            <button className="paradox-button" style={{ marginTop: '30px' }}>서버 상태 보기</button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
