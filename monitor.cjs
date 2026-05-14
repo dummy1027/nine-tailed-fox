@@ -2,7 +2,7 @@ const si = require('systeminformation');
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = 'https://klnwpmhqqaokwktqtbyg.supabase.co';
-const supabaseKey = 'sb_publishable_tKUEGM3XejDpmPCl7S5BYg_7-Apj6Hl';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsbndwbWhxcWFva3drdHF0YnlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyNjQ5MzQsImV4cCI6MjA5Mzg0MDkzNH0.VRk_U03FUa-iLzr7ZDtyXfd99-QoqCCWXwZK1BY5Prg';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function updateStatus() {
