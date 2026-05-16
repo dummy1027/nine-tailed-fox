@@ -3,17 +3,27 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react
 import './App.css';
 import CPreview from './CPreview';
 import Community from './Community';
+import Profile from './Profile';
+import ProfileSettings from './ProfileSettings';
 import logo from './assets/logo.png';
 import { AuthProvider, useAuth } from './AuthContext';
 import AuthModal from './AuthModal';
+import { User, Settings } from 'lucide-react';
 
 function NavAuthArea({ onOpen }) {
   const { user, profile, logout } = useAuth();
+  const navigate = useNavigate();
   if (user) {
     const name = profile?.username || user.email?.split('@')[0] || '사용자';
     return (
       <div className="auth-buttons">
-        <span className="auth-user">{name} 님</span>
+        <button className="profile-btn" onClick={() => navigate('/profile')} title="프로필">
+          <User size={18} />
+          <span>{name}</span>
+        </button>
+        <button className="settings-btn" onClick={() => navigate('/settings')} title="설정">
+          <Settings size={18} />
+        </button>
         <button className="login-btn" onClick={logout}>로그아웃</button>
       </div>
     );
@@ -2361,6 +2371,8 @@ function App() {
           <Route path="/private-battle" element={<PrivateBattle />} />
           <Route path="/server-status" element={<ServerStatus />} />
           <Route path="/c-preview" element={<CPreview />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<ProfileSettings />} />
         </Routes>
 
         <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />

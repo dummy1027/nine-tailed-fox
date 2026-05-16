@@ -259,7 +259,10 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 
     // 이메일이 없으면 username 기반 내부 이메일을 생성 (Supabase Auth 요구사항 충족용)
-    const authEmail = email || `${username.toLowerCase()}@${INTERNAL_EMAIL_DOMAIN}`;
+    // 한글 등이 포함될 경우 이메일 형식 오류가 발생하므로 ASCII 안전하게 변환
+    const isAscii = /^[\x00-\x7F]*$/.test(username);
+    const safeUsername = isAscii ? username.toLowerCase() : Buffer.from(username).toString('hex');
+    const authEmail = email || `${safeUsername}@${INTERNAL_EMAIL_DOMAIN}`;
 
     const { data, error } = await supabase.auth.admin.createUser({
         email: authEmail,

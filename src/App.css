@@ -389,3 +389,41 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* 프로필 & 설정 버튼 */
+.profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.profile-btn:hover {
+  background: var(--theme-surface);
+  border-color: var(--tesla-blue);
+}
+
+.settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.settings-btn:hover {
+  background: var(--theme-surface);
+  border-color: var(--tesla-blue);
+}
