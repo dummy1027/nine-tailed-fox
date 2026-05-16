@@ -217,6 +217,111 @@ app.post('/api/posts/:postId/comments', async (req, res) => {
     res.json(data[0]);
 });
 
+// --- 인증 API ---
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_RE = /^[A-Za-z0-9_가-힣]{2,20}$/;
+
+// 이메일 없이 가입한 계정용 내부 도메인 (실제 이메일이 아님)
+const INTERNAL_EMAIL_DOMAIN = 'noemail.paradox.local';
+
+// 회원가입: username + 비밀번호 (이메일은 선택)
+app.post('/api/auth/signup', async (req, res) => {
+    const { email: rawEmail, username, password } = req.body || {};
+    const email = (rawEmail || '').trim();
+
+    if (!username || !password) {
+        return res.status(400).json({ error: '아이디와 비밀번호를 입력해주세요.' });
+    }
+    if (email && !EMAIL_RE.test(email)) {
+        return res.status(400).json({ error: '올바른 이메일 형식이 아닙니다.' });
+    }
+    if (!USERNAME_RE.test(username)) {
+        return res.status(400).json({ error: '아이디는 2~20자의 한글/영문/숫자/_ 만 사용할 수 있습니다.' });
+    }
+    if (password.length < 6) {
+        return res.status(400).json({ error: '비밀번호는 6자 이상이어야 합니다.' });
+    }
+
+    const { data: dupe, error: dupeErr } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('username', username)
+        .maybeSingle();
+    if (dupeErr) {
+        return res.status(500).json({
+            error: 'profiles 테이블을 조회할 수 없습니다. USERS_SETUP.sql 을 Supabase 에서 실행했는지 확인해주세요.',
+            detail: dupeErr.message,
+        });
+    }
+    if (dupe) {
+        return res.status(409).json({ error: '이미 사용 중인 아이디입니다.' });
+    }
+
+    // 이메일이 없으면 username 기반 내부 이메일을 생성 (Supabase Auth 요구사항 충족용)
+    const authEmail = email || `${username.toLowerCase()}@${INTERNAL_EMAIL_DOMAIN}`;
+
+    const { data, error } = await supabase.auth.admin.createUser({
+        email: authEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { username, has_real_email: !!email },
+    });
+    if (error) {
+        const msg = /already registered|already exists/i.test(error.message)
+            ? (email ? '이미 가입된 이메일입니다.' : '이미 사용 중인 아이디입니다.')
+            : error.message;
+        return res.status(400).json({ error: msg });
+    }
+
+    const { error: upsertErr } = await supabase
+        .from('profiles')
+        .upsert({ id: data.user.id, username }, { onConflict: 'id' });
+    if (upsertErr) {
+        // 프로필 저장 실패 시 방금 만든 auth 계정을 롤백
+        await supabase.auth.admin.deleteUser(data.user.id);
+        return res.status(500).json({
+            error: 'profiles 저장에 실패했습니다. USERS_SETUP.sql 을 실행했는지 확인해주세요.',
+            detail: upsertErr.message,
+        });
+    }
+
+    res.json({ user: { id: data.user.id, username, email: email || null } });
+});
+
+// username -> email 조회 (username 으로 로그인할 때 사용)
+app.post('/api/auth/lookup-email', async (req, res) => {
+    const { username } = req.body || {};
+    if (!username) return res.status(400).json({ error: 'username 이 필요합니다.' });
+
+    const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('username', username)
+        .maybeSingle();
+    if (error) return res.status(500).json({ error: error.message });
+    if (!profile) return res.status(404).json({ error: '존재하지 않는 아이디입니다.' });
+
+    const { data, error: userErr } = await supabase.auth.admin.getUserById(profile.id);
+    if (userErr || !data?.user) return res.status(500).json({ error: '계정 조회에 실패했습니다.' });
+
+    res.json({ email: data.user.email });
+});
+
+// username 중복 확인
+app.get('/api/auth/check-username', async (req, res) => {
+    const username = String(req.query.username || '').trim();
+    if (!USERNAME_RE.test(username)) {
+        return res.json({ available: false, reason: 'invalid' });
+    }
+    const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('username', username)
+        .maybeSingle();
+    res.json({ available: !data });
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);
 });

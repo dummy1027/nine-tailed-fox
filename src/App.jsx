@@ -4,6 +4,27 @@ import './App.css';
 import CPreview from './CPreview';
 import Community from './Community';
 import logo from './assets/logo.png';
+import { AuthProvider, useAuth } from './AuthContext';
+import AuthModal from './AuthModal';
+
+function NavAuthArea({ onOpen }) {
+  const { user, profile, logout } = useAuth();
+  if (user) {
+    const name = profile?.username || user.email?.split('@')[0] || '사용자';
+    return (
+      <div className="auth-buttons">
+        <span className="auth-user">{name} 님</span>
+        <button className="login-btn" onClick={logout}>로그아웃</button>
+      </div>
+    );
+  }
+  return (
+    <div className="auth-buttons">
+      <button className="login-btn" onClick={() => onOpen('login')}>로그인</button>
+      <button className="signup-btn" onClick={() => onOpen('signup')}>회원가입</button>
+    </div>
+  );
+}
 
 
 
@@ -2294,6 +2315,13 @@ const PrivateBattle = () => {
 // --- 파트 4: 앱 설정 ---
 function App() {
   const [message, setMessage] = useState("Loading...");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+
+  const openAuth = (mode) => {
+    setAuthMode(mode);
+    setAuthOpen(true);
+  };
 
   useEffect(() => {
     fetch('http://localhost:5000/api/test')
@@ -2303,40 +2331,41 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <nav className="nav-bar">
-  {/* 1. 로고 영역 */}
-  <Link to="/" className="logo-container">
-    <img src={logo} alt="Paradox Logo" className="logo-img" />
-  </Link>
+    <AuthProvider>
+      <Router>
+        <nav className="nav-bar">
+          {/* 1. 로고 영역 */}
+          <Link to="/" className="logo-container">
+            <img src={logo} alt="Paradox Logo" className="logo-img" />
+          </Link>
 
-  {/* 2. 중앙 메뉴 영역 */}
-  <div className="nav-menu">
-    <Link to="/basics">C언어 기초</Link>
-    <Link to="/community">커뮤니티</Link>
-    <Link to="/workbook">문제집</Link>
-    <Link to="/ranking">랭킹</Link>
-    <Link to="/server-status">서버 상태</Link>
-  </div>
+          {/* 2. 중앙 메뉴 영역 */}
+          <div className="nav-menu">
+            <Link to="/basics">C언어 기초</Link>
+            <Link to="/community">커뮤니티</Link>
+            <Link to="/workbook">문제집</Link>
+            <Link to="/ranking">랭킹</Link>
+            <Link to="/server-status">서버 상태</Link>
+          </div>
 
-  {/* 3. 오른쪽 버튼 영역 */}
-  <div className="auth-buttons">
-    <button className="login-btn">로그인</button>
-    <button className="signup-btn">회원가입</button>
-  </div>
-</nav>
+          {/* 3. 오른쪽 버튼 영역 */}
+          <NavAuthArea onOpen={openAuth} />
+        </nav>
 
-      <Routes>
-        <Route path="/" element={<Home message={message} />} />
-        <Route path="/basics" element={<Basics />} />
-        <Route path="/community" element={<Community />} />
-        <Route path="/workbook" element={<Workbook />} />
-        <Route path="/ranking" element={<Ranking />} />
-        <Route path="/private-battle" element={<PrivateBattle />} />
-        <Route path="/server-status" element={<ServerStatus />} />
-        <Route path="/c-preview" element={<CPreview />} />
-      </Routes>
-    </Router>
+        <Routes>
+          <Route path="/" element={<Home message={message} />} />
+          <Route path="/basics" element={<Basics />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/workbook" element={<Workbook />} />
+          <Route path="/ranking" element={<Ranking />} />
+          <Route path="/private-battle" element={<PrivateBattle />} />
+          <Route path="/server-status" element={<ServerStatus />} />
+          <Route path="/c-preview" element={<CPreview />} />
+        </Routes>
+
+        <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
+      </Router>
+    </AuthProvider>
   );
 }
 
