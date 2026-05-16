@@ -86,6 +86,11 @@ export default function Profile() {
               <p style={{ color: 'var(--theme-secondary-text)', fontSize: '14px', marginTop: '10px' }}>
                 가입일: {joinDate}
               </p>
+              {profile.bio && (
+                <p style={{ color: 'var(--theme-text)', fontSize: '15px', marginTop: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                  {profile.bio}
+                </p>
+              )}
             </div>
           </div>
         </div>
