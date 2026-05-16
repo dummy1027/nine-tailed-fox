@@ -2229,10 +2229,9 @@ const ServerStatus = () => {
 
 const PrivateBattle = () => {
   const [rooms, setRooms] = useState([]);
-  const [view, setView] = useState('list'); // 'list' 또는 'created' 화면 전환용
+  const [view, setView] = useState('list'); // 'list' 또는 'created'
   const [generatedCode, setGeneratedCode] = useState('');
 
-  // 새로운 방 생성 버튼 클릭 시 실행되는 함수
   const handleCreateRoom = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -2240,101 +2239,103 @@ const PrivateBattle = () => {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setGeneratedCode(code);
-    setView('created'); // 화면을 방 생성 완료(코드 확인) 페이지로 전환
+    setView('created');
   };
 
-  // 방 생성 완료(코드 확인) 페이지
+  // 1. 방 생성 후 대기 화면 (참여자 목록 표 포함)
   if (view === 'created') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center', backgroundColor: 'var(--theme-surface)', padding: '50px', borderRadius: '24px', border: '1px solid var(--theme-border)' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '10px' }}>전투 준비 완료!</h2>
-          <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '30px' }}>친구에게 아래 코드를 공유하고 상대방을 기다리세요.</p>
+        <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center', backgroundColor: 'var(--theme-surface)', padding: '40px', borderRadius: '24px', border: '1px solid var(--theme-border)' }}>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: '800', marginBottom: '8px' }}>전투 대기실</h2>
+          <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '25px' }}>친구에게 아래 코드를 공유하세요</p>
           
-          <div style={{ 
-            backgroundColor: '#fff', 
-            padding: '30px', 
-            borderRadius: '16px', 
-            border: '2px dashed var(--tesla-blue)', 
-            marginBottom: '40px' 
-          }}>
-            <span style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '8px', color: 'var(--tesla-blue)' }}>
-              {generatedCode}
-            </span>
+          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '2px dashed var(--tesla-blue)', marginBottom: '35px', display: 'inline-block', minWidth: '250px' }}>
+            <span style={{ fontSize: '40px', fontWeight: '900', letterSpacing: '8px', color: 'var(--tesla-blue)' }}>{generatedCode}</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <button 
-              onClick={() => setView('list')}
-              style={{ padding: '15px', borderRadius: '12px', backgroundColor: '#ff4b4b', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}
-            >
-              방 삭제하고 나가기
-            </button>
+          {/* 참여자 목록 표 */}
+          <div style={{ marginTop: '20px', textAlign: 'left' }}>
+            <h3 style={{ fontSize: '16px', marginBottom: '12px', color: 'var(--theme-text)' }}>참여자 목록 (1/2)</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'var(--theme-bg)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--theme-border)' }}>
+              <thead>
+                <tr style={{ backgroundColor: 'var(--theme-surface)', borderBottom: '1px solid var(--theme-border)' }}>
+                  <th style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'left' }}>플레이어</th>
+                  <th style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'right' }}>상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid var(--theme-border)' }}>
+                  <td style={{ padding: '12px 15px', fontSize: '14px' }}>나 (방장)</td>
+                  <td style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'right', color: '#2ecc71', fontWeight: '600' }}>준비 완료</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '12px 15px', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>대기 중...</td>
+                  <td style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'right', color: 'var(--theme-secondary-text)' }}>-</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+
+          <button 
+            onClick={() => setView('list')}
+            style={{ marginTop: '30px', padding: '12px 25px', borderRadius: '10px', backgroundColor: '#ff4b4b', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+          >
+            방 닫기
+          </button>
         </div>
       </div>
     );
   }
 
-  // 기본 방 목록 페이지 (사용자님이 주신 코드 기반)
+  // 2. 메인 방 목록 & 참여하기 화면 (코드 입력창 개선)
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
-          비공개 배틀
-        </h1>
-        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '30px', fontSize: '16px' }}>
-          친구들과 함께 배틀하세요!
-        </p>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: '800' }} className="text-gradient">비공개 배틀</h1>
+        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '30px' }}>함께할 친구를 찾거나 방을 만드세요.</p>
 
-        <div style={{ display: 'flex', gap: '30px' }}>
-          {/* 왼쪽: 방 목록 영역 */}
-          <div style={{ flex: 1, backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
-              참여 가능한 방
-            </div>
-            {rooms.length === 0 ? (
-              <div style={{ padding: '60px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>
-                아직 생성된 방이 없어요
-              </div>
-            ) : (
-              rooms.map((room, index) => (
-                <div key={room.id} style={{ padding: '16px 20px', borderBottom: index < rooms.length - 1 ? '1px solid var(--theme-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontWeight: '600', marginBottom: '4px' }}>{room.name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>방장: {room.host}</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>{room.players}/2</span>
-                    <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>대기중</span>
-                  </div>
-                </div>
-              ))
-            )}
+        <div style={{ display: 'flex', gap: '25px', alignItems: 'flex-start' }}>
+          {/* 방 목록 */}
+          <div style={{ flex: 1.5, backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
+            <div style={{ padding: '15px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px' }}>참여 가능한 방</div>
+            <div style={{ padding: '50px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>아직 생성된 방이 없어요</div>
           </div>
 
-          {/* 오른쪽: 버튼 영역 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '200px' }}>
+          {/* 참여/생성 버튼 섹션 */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {/* 방 생성 버튼 */}
             <button 
-              onClick={handleCreateRoom} // 초록 버튼에 함수 연결
-              style={{
-                padding: '15px 20px', borderRadius: '12px', backgroundColor: '#2ecc71', border: 'none', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(46, 204, 113, 0.3)'
-              }}
+              onClick={handleCreateRoom}
+              style={{ padding: '15px', borderRadius: '12px', backgroundColor: '#2ecc71', border: 'none', color: 'white', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(46, 204, 113, 0.2)' }}
             >
               ➕ 새로운 방 생성
             </button>
-            <button style={{
-              padding: '15px 20px', borderRadius: '12px', backgroundColor: '#f39c12', border: 'none', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(243, 156, 18, 0.3)'
-            }}>
-              🚪 방 참여하기
-            </button>
-          </div>
-        </div>
 
-        <div style={{ marginTop: '40px', textAlign: 'center' }}>
-          <Link to="/ranking" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
-            ← 랭킹으로 돌아가기
-          </Link>
+            {/* 코드 입력 참여 섹션 */}
+            <div style={{ backgroundColor: 'var(--theme-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--theme-border)', textAlign: 'center' }}>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--theme-secondary-text)', display: 'block', marginBottom: '12px' }}>입장 코드로 참여</span>
+              <input 
+                placeholder="CODE6" 
+                maxLength={6}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  border: '1px solid var(--theme-border)', 
+                  textAlign: 'center', 
+                  fontSize: '18px', 
+                  fontWeight: '800', 
+                  letterSpacing: '3px',
+                  marginBottom: '10px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <button style={{ width: '100%', padding: '12px', borderRadius: '8px', backgroundColor: '#f39c12', border: 'none', color: 'white', fontWeight: '700', cursor: 'pointer' }}>
+                🚪 방 참여하기
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
