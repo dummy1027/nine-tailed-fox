@@ -119,7 +119,7 @@ export default function Profile() {
             border: '1px solid var(--theme-border)'
           }}>
             <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{solvedCount}</div>
-            <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>解いた問題</div>
+            <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>해결한 문제</div>
           </div>
         </div>
 
