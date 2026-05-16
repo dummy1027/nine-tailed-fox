@@ -1,0 +1,27 @@
+[
+  {
+    "name": "home",
+    "ok": true,
+    "path": "C:\\Users\\USER\\LasLasgang\\nine-tailed-fox\\연구일지\\screenshots\\home.png"
+  },
+  {
+    "name": "cpreview",
+    "ok": true,
+    "path": "C:\\Users\\USER\\LasLasgang\\nine-tailed-fox\\연구일지\\screenshots\\cpreview.png"
+  },
+  {
+    "name": "community",
+    "ok": true,
+    "path": "C:\\Users\\USER\\LasLasgang\\nine-tailed-fox\\연구일지\\screenshots\\community.png"
+  },
+  {
+    "name": "github_main",
+    "ok": true,
+    "path": "C:\\Users\\USER\\LasLasgang\\nine-tailed-fox\\연구일지\\screenshots\\github_main.png"
+  },
+  {
+    "name": "github_commits",
+    "ok": true,
+    "path": "C:\\Users\\USER\\LasLasgang\\nine-tailed-fox\\연구일지\\screenshots\\github_commits.png"
+  }
+]
