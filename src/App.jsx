@@ -2227,6 +2227,100 @@ const ServerStatus = () => {
   );
 };
 
+const PrivateBattle = () => {
+  const [rooms, setRooms] = useState([]);
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
+          비공개 배틀
+        </h1>
+        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '30px', fontSize: '16px' }}>
+          친구들과 함께 배틀하세요!
+        </p>
+
+        <div style={{ display: 'flex', gap: '30px' }}>
+          <div style={{ flex: 1, backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
+              참여 가능한 방
+            </div>
+            {rooms.length === 0 ? (
+              <div style={{ padding: '60px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>
+                아직 생성된 방이 없어요
+              </div>
+            ) : (
+              rooms.map((room, index) => (
+                <div
+                  key={room.id}
+                  style={{
+                    padding: '16px 20px',
+                    borderBottom: index < rooms.length - 1 ? '1px solid var(--theme-border)' : 'none',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'background 0.2s',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <div>
+                    <div style={{ fontWeight: '600', marginBottom: '4px' }}>{room.name}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>방장: {room.host}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>{room.players}/2</span>
+                    <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
+                      대기중
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '200px' }}>
+            <button style={{
+              padding: '15px 20px',
+              borderRadius: '12px',
+              backgroundColor: '#2ecc71',
+              border: 'none',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 15px rgba(46, 204, 113, 0.3)'
+            }}>
+              ➕ 새로운 방 생성
+            </button>
+            <button style={{
+              padding: '15px 20px',
+              borderRadius: '12px',
+              backgroundColor: '#f39c12',
+              border: 'none',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 15px rgba(243, 156, 18, 0.3)'
+            }}>
+              🚪 방 참여하기
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <Link to="/ranking" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
+            ← 랭킹으로 돌아가기
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // --- 파트 4: 앱 설정 ---
 function App() {
