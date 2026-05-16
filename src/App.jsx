@@ -2229,7 +2229,54 @@ const ServerStatus = () => {
 
 const PrivateBattle = () => {
   const [rooms, setRooms] = useState([]);
+  const [view, setView] = useState('list'); // 'list' 또는 'created' 화면 전환용
+  const [generatedCode, setGeneratedCode] = useState('');
 
+  // 새로운 방 생성 버튼 클릭 시 실행되는 함수
+  const handleCreateRoom = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setGeneratedCode(code);
+    setView('created'); // 화면을 방 생성 완료(코드 확인) 페이지로 전환
+  };
+
+  // 방 생성 완료(코드 확인) 페이지
+  if (view === 'created') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center', backgroundColor: 'var(--theme-surface)', padding: '50px', borderRadius: '24px', border: '1px solid var(--theme-border)' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '10px' }}>전투 준비 완료!</h2>
+          <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '30px' }}>친구에게 아래 코드를 공유하고 상대방을 기다리세요.</p>
+          
+          <div style={{ 
+            backgroundColor: '#fff', 
+            padding: '30px', 
+            borderRadius: '16px', 
+            border: '2px dashed var(--tesla-blue)', 
+            marginBottom: '40px' 
+          }}>
+            <span style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '8px', color: 'var(--tesla-blue)' }}>
+              {generatedCode}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <button 
+              onClick={() => setView('list')}
+              style={{ padding: '15px', borderRadius: '12px', backgroundColor: '#ff4b4b', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+            >
+              방 삭제하고 나가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 기본 방 목록 페이지 (사용자님이 주신 코드 기반)
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -2241,6 +2288,7 @@ const PrivateBattle = () => {
         </p>
 
         <div style={{ display: 'flex', gap: '30px' }}>
+          {/* 왼쪽: 방 목록 영역 */}
           <div style={{ flex: 1, backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
               참여 가능한 방
@@ -2251,61 +2299,32 @@ const PrivateBattle = () => {
               </div>
             ) : (
               rooms.map((room, index) => (
-                <div
-                  key={room.id}
-                  style={{
-                    padding: '16px 20px',
-                    borderBottom: index < rooms.length - 1 ? '1px solid var(--theme-border)' : 'none',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    transition: 'background 0.2s',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
+                <div key={room.id} style={{ padding: '16px 20px', borderBottom: index < rooms.length - 1 ? '1px solid var(--theme-border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: '600', marginBottom: '4px' }}>{room.name}</div>
                     <div style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>방장: {room.host}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>{room.players}/2</span>
-                    <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
-                      대기중
-                    </span>
+                    <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>대기중</span>
                   </div>
                 </div>
               ))
             )}
           </div>
 
+          {/* 오른쪽: 버튼 영역 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '200px' }}>
-            <button style={{
-              padding: '15px 20px',
-              borderRadius: '12px',
-              backgroundColor: '#2ecc71',
-              border: 'none',
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: '0 4px 15px rgba(46, 204, 113, 0.3)'
-            }}>
+            <button 
+              onClick={handleCreateRoom} // 초록 버튼에 함수 연결
+              style={{
+                padding: '15px 20px', borderRadius: '12px', backgroundColor: '#2ecc71', border: 'none', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(46, 204, 113, 0.3)'
+              }}
+            >
               ➕ 새로운 방 생성
             </button>
             <button style={{
-              padding: '15px 20px',
-              borderRadius: '12px',
-              backgroundColor: '#f39c12',
-              border: 'none',
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: '0 4px 15px rgba(243, 156, 18, 0.3)'
+              padding: '15px 20px', borderRadius: '12px', backgroundColor: '#f39c12', border: 'none', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(243, 156, 18, 0.3)'
             }}>
               🚪 방 참여하기
             </button>
