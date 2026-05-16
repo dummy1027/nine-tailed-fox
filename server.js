@@ -311,6 +311,44 @@ app.post('/api/auth/lookup-email', async (req, res) => {
     res.json({ email: data.user.email });
 });
 
+// 계정 삭제
+app.delete('/api/auth/delete-account', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: '인증이 필요합니다.' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    
+    // 직접 REST API를 호출하여 토큰 검증 (Service Key 충돌 방지)
+    const userRes = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+        headers: {
+            apikey: process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${token}`
+        }
+    });
+    
+    const user = await userRes.json();
+    
+    if (!userRes.ok || !user.id) {
+        console.log('Delete account auth error:', user);
+        return res.status(401).json({ error: '유효하지 않은 토큰입니다.', detail: user.msg });
+    }
+    
+    const { userId } = req.body || {};
+    if (!userId || userId !== user.id) {
+        return res.status(403).json({ error: '권한이 없습니다.' });
+    }
+
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+    
+    if (deleteError) {
+        return res.status(500).json({ error: '계정 삭제에 실패했습니다.', detail: deleteError.message });
+    }
+    
+    res.json({ success: true, message: '계정이 삭제되었습니다.' });
+});
+
 // username 중복 확인
 app.get('/api/auth/check-username', async (req, res) => {
     const username = String(req.query.username || '').trim();

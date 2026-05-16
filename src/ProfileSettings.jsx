@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
 export default function ProfileSettings() {
-  const { user, profile, loading, logout } = useAuth();
+  const { user, profile, loading, logout, session } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
@@ -51,13 +51,23 @@ export default function ProfileSettings() {
     }
 
     try {
+      const token = session?.access_token;
+      if (!token) {
+        alert('세션 토큰을 찾을 수 없습니다.');
+        return;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/api/auth/delete-account`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ userId: user.id })
       });
 
       if (response.ok) {
+        alert('계정이 성공적으로 삭제되었습니다.');
         await logout();
       } else {
         const data = await response.json();
