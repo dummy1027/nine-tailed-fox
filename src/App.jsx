@@ -1882,11 +1882,12 @@ const Ranking = () => {
         </div>
 
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 120px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
             <div>Rank</div>
             <div>User</div>
             <div style={{ textAlign: 'center' }}>Score</div>
             <div style={{ textAlign: 'center' }}>Solved</div>
+            <div style={{ textAlign: 'center' }}>Rating</div>
             <div style={{ textAlign: 'center' }}>Streak</div>
           </div>
 
@@ -1900,7 +1901,7 @@ const Ranking = () => {
                 key={user.rank}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '80px 1fr 120px 120px 100px',
+                  gridTemplateColumns: '80px 1fr 120px 100px 100px 100px',
                   padding: '16px 20px',
                   borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none',
                   alignItems: 'center',
@@ -1922,6 +1923,7 @@ const Ranking = () => {
                 <div style={{ fontWeight: '500' }}>{user.username}</div>
                 <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{user.score.toLocaleString()}</div>
                 <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>{user.solved}</div>
+                <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
                     🔥 {user.streak}
@@ -2231,6 +2233,7 @@ const PrivateBattle = () => {
   const [rooms, setRooms] = useState([]);
   const [view, setView] = useState('list'); // 'list' 또는 'created'
   const [generatedCode, setGeneratedCode] = useState('');
+  const [isReady, setIsReady] = useState(false);
 
   const handleCreateRoom = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -2267,7 +2270,7 @@ const PrivateBattle = () => {
               <tbody>
                 <tr style={{ borderBottom: '1px solid var(--theme-border)' }}>
                   <td style={{ padding: '12px 15px', fontSize: '14px' }}>나 (방장)</td>
-                  <td style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'right', color: '#2ecc71', fontWeight: '600' }}>준비 완료</td>
+                  <td style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'right', color: isReady ? '#2ecc71' : '#f39c12', fontWeight: '600' }}>{isReady ? '준비 완료' : '대기 중'}</td>
                 </tr>
                 <tr>
                   <td style={{ padding: '12px 15px', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>대기 중...</td>
@@ -2277,12 +2280,20 @@ const PrivateBattle = () => {
             </table>
           </div>
 
-          <button 
-            onClick={() => setView('list')}
-            style={{ marginTop: '30px', padding: '12px 25px', borderRadius: '10px', backgroundColor: '#ff4b4b', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}
-          >
-            방 닫기
-          </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '30px' }}>
+            <button 
+              onClick={() => setIsReady(!isReady)}
+              style={{ padding: '12px 25px', borderRadius: '10px', backgroundColor: isReady ? '#2ecc71' : '#f39c12', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+            >
+              {isReady ? '✓ 준비완료' : '준비하기'}
+            </button>
+            <button 
+              onClick={() => setView('list')}
+              style={{ padding: '12px 25px', borderRadius: '10px', backgroundColor: '#ff4b4b', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+            >
+              방 닫기
+            </button>
+          </div>
         </div>
       </div>
     );
