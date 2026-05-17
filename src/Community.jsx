@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { useAuth } from './AuthContext';
 
 const Community = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [view, setView] = useState('list');
   const [selectedPost, setSelectedPost] = useState(null);
+  const [authorFilter, setAuthorFilter] = useState(null);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -23,9 +25,32 @@ const Community = () => {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyContent, setReplyContent] = useState('');
+  const [authorMenuTarget, setAuthorMenuTarget] = useState(null);
+
+  const handleAuthorClick = (authorName, e) => {
+    e.stopPropagation();
+    setAuthorMenuTarget(authorName);
+  };
+
+  const handleViewProfile = () => {
+    if (authorMenuTarget) {
+      navigate(`/profile?username=${encodeURIComponent(authorMenuTarget)}`);
+      setAuthorMenuTarget(null);
+    }
+  };
+
+  const handleViewPosts = () => {
+    if (authorMenuTarget) {
+      setView('list');
+      setAuthorFilter(authorMenuTarget);
+      setSearchParams({});
+      setAuthorMenuTarget(null);
+      fetchPosts();
+    }
+  };
 
   // API에서 게시글 로드
-  const fetchPosts = async (query = '') => {
+  const fetchPosts = async (query = '', filterAuthor = null) => {
     setLoading(true);
     try {
       let queryBuilder = supabase
@@ -37,6 +62,8 @@ const Community = () => {
         queryBuilder = queryBuilder.or(
           `title.ilike.%${query}%,content.ilike.%${query}%,author.ilike.%${query}%`
         );
+      } else if (filterAuthor) {
+        queryBuilder = queryBuilder.eq('author', filterAuthor);
       }
 
       const { data, error } = await queryBuilder;
@@ -61,8 +88,8 @@ const Community = () => {
     fetchPosts(searchQuery);
   };
 
-  useEffect(() => {
-    fetchPosts();
+useEffect(() => {
+    fetchPosts('', authorFilter);
 
     const savedLikes = localStorage.getItem('paradox_liked_posts');
     if (savedLikes) {
@@ -70,7 +97,20 @@ const Community = () => {
     }
   }, []);
 
-  // URL 파라미터가 변경될 때마다(또는 처음 로드될 때) 해당 게시글 열기
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (authorMenuTarget && !e.target.closest('.author-menu')) {
+        setAuthorMenuTarget(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [authorMenuTarget]);
+
+  useEffect(() => {
+    fetchPosts('', authorFilter);
+  }, [authorFilter]);
+
   useEffect(() => {
     const postId = searchParams.get('id');
     if (postId && posts.length > 0) {
@@ -261,7 +301,7 @@ const Community = () => {
     const sortedPosts = [...posts].sort((a, b) => {
       if (sortBy === 'views') return b.views - a.views;
       if (sortBy === 'likes') return (b.likes || 0) - (a.likes || 0);
-      return b.id - a.id; // 기본 최신순 (ID가 클수록 최신)
+      return b.id - a.id;
     });
 
     return (
@@ -284,6 +324,20 @@ const Community = () => {
             글쓰기
           </button>
         </div>
+
+        {authorFilter && (
+          <div style={{ marginBottom: '20px', padding: '15px 20px', backgroundColor: 'rgba(203, 110, 230, 0.1)', borderRadius: '10px', border: '1px solid rgba(203, 110, 230, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'var(--theme-text)' }}>
+              <b>{authorFilter}</b>님의 작성글만 보는 중
+            </span>
+            <button
+              onClick={() => setAuthorFilter(null)}
+              style={{ padding: '8px 15px', borderRadius: '6px', backgroundColor: 'var(--theme-surface)', color: 'var(--theme-secondary-text)', border: '1px solid var(--theme-border)', cursor: 'pointer', fontSize: '13px' }}
+            >
+              초기화
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <input
@@ -319,7 +373,7 @@ const Community = () => {
           {searchQuery && (
             <button
               type="button"
-              onClick={() => { setSearchQuery(''); fetchPosts(); }}
+              onClick={() => setSearchQuery('')}
               style={{
                 padding: '12px 20px',
                 borderRadius: '10px',
@@ -361,7 +415,7 @@ const Community = () => {
           ))}
         </div>
 
-        <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--theme-border)', minHeight: '400px' }}>
+        <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--theme-border)', minHeight: '400px', position: 'relative' }}>
           {loading ? (
             <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>게시글을 불러오는 중...</div>
           ) : (
@@ -390,7 +444,14 @@ const Community = () => {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <td style={{ padding: '20px', fontWeight: '500' }}>{post.title}</td>
-                      <td style={{ padding: '20px', color: 'var(--theme-secondary-text)' }}>{post.author}</td>
+                      <td style={{ padding: '20px', color: 'var(--theme-secondary-text)', position: 'relative' }}>
+                          <span
+                            onClick={(e) => handleAuthorClick(post.author, e)}
+                            style={{ cursor: 'pointer', color: '#cb6ce6', fontWeight: '500' }}
+                          >
+                            {post.author}
+                          </span>
+                        </td>
                       <td style={{ padding: '20px', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>
                         {new Date(post.created_at || post.date).toLocaleDateString()}
                       </td>
@@ -403,6 +464,67 @@ const Community = () => {
             </table>
           )}
         </div>
+
+        {authorMenuTarget && (
+          <div
+            className="author-menu"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'var(--theme-surface)',
+              border: '1px solid var(--theme-border)',
+              borderRadius: '12px',
+              padding: '10px',
+              zIndex: 1000,
+              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+              minWidth: '180px'
+            }}
+          >
+            <div style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--theme-secondary-text)', borderBottom: '1px solid var(--theme-border)', marginBottom: '5px' }}>
+              {authorMenuTarget}님의 게시글
+            </div>
+            <button
+              onClick={handleViewProfile}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '10px 15px',
+                textAlign: 'left',
+                background: 'none',
+                border: 'none',
+                color: 'var(--theme-text)',
+                cursor: 'pointer',
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              👤 프로필 보기
+            </button>
+            <button
+              onClick={handleViewPosts}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '10px 15px',
+                textAlign: 'left',
+                background: 'none',
+                border: 'none',
+                color: 'var(--theme-text)',
+                cursor: 'pointer',
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              📝 쓴 글 보기
+            </button>
+          </div>
+        )}
       </div>
     );
   };

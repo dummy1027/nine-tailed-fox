@@ -1,14 +1,60 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
 export default function Profile() {
   const { user, profile, loading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const queryUsername = searchParams.get('username');
   const [stats, setStats] = useState({ posts: 0, comments: 0 });
   const [solvedCount, setSolvedCount] = useState(0);
+  const [viewedProfile, setViewedProfile] = useState(null);
+  const [viewedStats, setViewedStats] = useState({ posts: 0, comments: 0 });
+  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    const fetchViewedProfile = async () => {
+      setProfileLoading(true);
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, bio, created_at')
+        .eq('username', queryUsername)
+        .maybeSingle();
+      setViewedProfile(data);
+
+      if (data) {
+        const { count: postCount } = await supabase
+          .from('posts')
+          .select('*', { count: 'exact', head: true })
+          .eq('author', data.display_name || data.username);
+
+        const { count: commentCount } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('author', data.display_name || data.username);
+
+        setViewedStats({ posts: postCount || 0, comments: commentCount || 0 });
+      }
+      setProfileLoading(false);
+    };
+
+    if (queryUsername) {
+      if (!profile || queryUsername !== profile.username) {
+        fetchViewedProfile();
+      }
+    } else {
+      setViewedProfile(null);
+      setViewedStats({ posts: 0, comments: 0 });
+    }
+  }, [queryUsername, profile]);
+
+  const isOwnProfile = !queryUsername || (profile && queryUsername === profile.username);
+  const displayProfile = isOwnProfile ? profile : viewedProfile;
+  const displayStats = isOwnProfile ? stats : viewedStats;
+
+  useEffect(() => {
+    if (!user || !profile) return;
 
     const fetchStats = async () => {
       const { count: postCount } = await supabase
@@ -38,7 +84,15 @@ export default function Profile() {
     );
   }
 
-  if (!user || !profile) {
+  if (profileLoading) {
+    return (
+      <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
+        <div className="text-gradient" style={{ fontSize: '24px' }}>로딩 중...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
         <h1 className="text-gradient" style={{ fontSize: '36px', marginBottom: '20px' }}>프로필</h1>
@@ -47,7 +101,16 @@ export default function Profile() {
     );
   }
 
-  const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('ko-KR', {
+  if (!isOwnProfile && !viewedProfile && queryUsername && !profileLoading) {
+    return (
+      <div className="container" style={{ padding: '100px 20px', textAlign: 'center' }}>
+        <h1 className="text-gradient" style={{ fontSize: '36px', marginBottom: '20px' }}>프로필</h1>
+        <p style={{ color: 'var(--theme-secondary-text)' }}>존재하지 않는 사용자입니다.</p>
+      </div>
+    );
+  }
+
+  const joinDate = displayProfile?.created_at ? new Date(displayProfile.created_at).toLocaleDateString('ko-KR', {
     year: 'numeric', month: 'long', day: 'numeric'
   }) : '알 수 없음';
 
@@ -74,21 +137,26 @@ export default function Profile() {
               fontWeight: 'bold',
               color: 'white'
             }}>
-              {profile.username?.charAt(0).toUpperCase() || '?'}
+              {displayProfile.username?.charAt(0).toUpperCase() || '?'}
             </div>
             <div style={{ flex: 1 }}>
               <h1 className="text-gradient" style={{ fontSize: '32px', marginBottom: '5px' }}>
-                {profile.display_name || profile.username}
+                {displayProfile.display_name || displayProfile.username}
               </h1>
               <p style={{ color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
-                @{profile.username}
+                @{displayProfile.username}
               </p>
+              {!isOwnProfile && (
+                <p style={{ color: 'var(--theme-secondary-text)', fontSize: '14px', marginTop: '5px' }}>
+                  ({queryUsername}님의 프로필)
+                </p>
+              )}
               <p style={{ color: 'var(--theme-secondary-text)', fontSize: '14px', marginTop: '10px' }}>
                 가입일: {joinDate}
               </p>
-              {profile.bio && (
+              {displayProfile.bio && (
                 <p style={{ color: 'var(--theme-text)', fontSize: '15px', marginTop: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
-                  {profile.bio}
+                  {displayProfile.bio}
                 </p>
               )}
             </div>
@@ -103,7 +171,7 @@ export default function Profile() {
             textAlign: 'center',
             border: '1px solid var(--theme-border)'
           }}>
-            <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{stats.posts}</div>
+            <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{displayStats.posts}</div>
             <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>게시글</div>
           </div>
           <div style={{
@@ -113,39 +181,43 @@ export default function Profile() {
             textAlign: 'center',
             border: '1px solid var(--theme-border)'
           }}>
-            <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{stats.comments}</div>
+            <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{displayStats.comments}</div>
             <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>댓글</div>
           </div>
+          {isOwnProfile && (
+            <div style={{
+              background: 'var(--theme-surface)',
+              borderRadius: '16px',
+              padding: '25px',
+              textAlign: 'center',
+              border: '1px solid var(--theme-border)'
+            }}>
+              <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{solvedCount}</div>
+              <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>해결한 문제</div>
+            </div>
+          )}
+        </div>
+
+        {isOwnProfile && (
           <div style={{
             background: 'var(--theme-surface)',
             borderRadius: '16px',
             padding: '25px',
-            textAlign: 'center',
             border: '1px solid var(--theme-border)'
           }}>
-            <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{solvedCount}</div>
-            <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>해결한 문제</div>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'var(--theme-surface)',
-          borderRadius: '16px',
-          padding: '25px',
-          border: '1px solid var(--theme-border)'
-        }}>
-          <h3 style={{ marginBottom: '15px', color: 'var(--theme-text)' }}>계정 정보</h3>
-          <div style={{ display: 'grid', gap: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--theme-secondary-text)' }}>아이디</span>
-              <span style={{ color: 'var(--theme-text)' }}>{profile.username}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--theme-secondary-text)' }}>이메일</span>
-              <span style={{ color: 'var(--theme-text)' }}>{user.email || '미설정'}</span>
+            <h3 style={{ marginBottom: '15px', color: 'var(--theme-text)' }}>계정 정보</h3>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--theme-secondary-text)' }}>아이디</span>
+                <span style={{ color: 'var(--theme-text)' }}>{profile.username}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--theme-secondary-text)' }}>이메일</span>
+                <span style={{ color: 'var(--theme-text)' }}>{user.email || '미설정'}</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
