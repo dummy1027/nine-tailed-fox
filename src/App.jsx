@@ -2348,6 +2348,12 @@ const PrivateBattle = () => {
             </div>
           </div>
         </div>
+
+        <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <Link to="/ranking" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
+            ← 랭킹으로 돌아가기
+          </Link>
+        </div>
       </div>
     </div>
   );
