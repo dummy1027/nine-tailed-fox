@@ -100,49 +100,66 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* 모서리가 둥근 사각형 카드 */
-.community-card {
+/* 1. 2x2 그리드 레이아웃 설정 */
+.main-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2열로 배치 */
+  gap: 24px;                             /* 카드 사이 간격 */
+  max-width: 1100px;                     /* 전체 폭 제한 */
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 2. 카드 스타일 (테마 변수 적용) */
+.community-card.small {
   width: 100%;
-  max-width: 800px;
   min-height: 250px;
-  background: var(--theme-surface);
-  /* 카드 전용 배경색 */
+  background: var(--theme-surface);      /* 테마에 따라 색상 변함 */
   border-radius: 30px;
-  /* 아주 둥근 모서리 */
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   border: 1px solid var(--theme-border);
-  /* 은은한 테두리 */
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
   cursor: pointer;
 }
 
-/* 카드에 마우스 올렸을 때 효과 */
-.community-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--paradox-end);
-  /* 보라색 테두리 포인트 */
+/* 카드 호버 효과 */
+.community-card.small:hover {
+  transform: translateY(-8px);
+  border-color: var(--paradox-end);      /* 보라색 포인트 */
+  box-shadow: var(--shadow);             /* 설정된 그림자 효과 */
 }
 
-/* 카드 내부 콘텐츠 */
+/* 3. 카드 내부 텍스트 스타일 */
+.community-content {
+  padding: 40px 20px;
+}
+
 .community-content h2 {
-  color: var(--theme-text);
+  color: var(--theme-text);              /* 테마에 따라 검정/흰색 자동 전환 */
   font-size: 1.8rem;
   margin: 10px 0;
+  word-break: keep-all;
 }
 
 .community-content p {
-  color: var(--theme-secondary-text);
-  margin-bottom: 20px;
+  color: var(--theme-secondary-text);    /* 보조 텍스트 색상 */
+  font-size: 1rem;
+  margin-bottom: 0;
+  word-break: keep-all;
 }
 
+/* 4. 태그 스타일 (강조색) */
 .tag {
-  color: var(--paradox-start);
+  color: var(--paradox-start);           /* Paradox 로고색 계열 유지 */
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-size: 0.8rem;
+  display: block;
+  margin-bottom: 8px;
 }
 
 /* 커뮤니티 버튼 */
