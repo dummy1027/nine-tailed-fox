@@ -45,7 +45,6 @@ const Community = () => {
       setAuthorFilter(authorMenuTarget);
       setSearchParams({});
       setAuthorMenuTarget(null);
-      fetchPosts();
     }
   };
 
