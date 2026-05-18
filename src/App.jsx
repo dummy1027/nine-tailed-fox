@@ -2380,29 +2380,37 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        {/* 기존 <nav> 태그를 아래와 같이 감싸주세요 */}
-<nav className="nav-bar">
-  <div className="nav-content"> {/* 선 안쪽의 내용물들을 중앙으로 모아주는 역할 */}
-    
-    {/* 1. 로고 영역 */}
-    <Link to="/" className="logo-container">
-      <img src={logo} alt="Paradox Logo" className="logo-img" />
-    </Link>
+        <nav className="nav-bar">
+          {/* 1. 로고 영역 */}
+          <Link to="/" className="logo-container">
+            <img src={logo} alt="Paradox Logo" className="logo-img" />
+          </Link>
 
-    {/* 2. 중앙 메뉴 영역 */}
-    <div className="nav-menu">
-      <Link to="/basics">C언어 기초</Link>
-      <Link to="/community">커뮤니티</Link>
-      <Link to="/workbook">문제집</Link>
-      <Link to="/ranking">랭킹</Link>
-      <Link to="/server-status">서버 상태</Link>
-    </div>
+          {/* 2. 중앙 메뉴 영역 */}
+          <div className="nav-menu">
+            <Link to="/basics">C언어 기초</Link>
+            <Link to="/community">커뮤니티</Link>
+            <Link to="/workbook">문제집</Link>
+            <Link to="/ranking">랭킹</Link>
+            <Link to="/server-status">서버 상태</Link>
+          </div>
 
-    {/* 3. 오른쪽 버튼 영역 */}
-    <NavAuthArea onOpen={openAuth} />
+          {/* 3. 오른쪽 버튼 영역 */}
+          <NavAuthArea onOpen={openAuth} />
+        </nav>
 
-  </div>
-</nav>
+        <Routes>
+          <Route path="/" element={<Home message={message} />} />
+          <Route path="/basics" element={<Basics />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/workbook" element={<Workbook />} />
+          <Route path="/ranking" element={<Ranking />} />
+          <Route path="/private-battle" element={<PrivateBattle />} />
+          <Route path="/server-status" element={<ServerStatus />} />
+          <Route path="/c-preview" element={<CPreview />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<ProfileSettings />} />
+        </Routes>
 
         <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
       </Router>
