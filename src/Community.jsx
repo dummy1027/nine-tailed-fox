@@ -4,6 +4,8 @@ import { supabase } from './supabaseClient';
 import { useAuth } from './AuthContext';
 
 const Community = () => {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [view, setView] = useState('list');
   const [selectedPost, setSelectedPost] = useState(null);
