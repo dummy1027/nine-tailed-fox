@@ -67,48 +67,48 @@ const Home = ({ message }) => {
         </div>
       </section>
 
-      {/* 통합 카드 섹션: 서버, 커뮤니티, 문제집, 랭킹 */}
-    <section className="main-grid-section" style={{ paddingBottom: '100px', paddingLeft: '20px', paddingRight: '20px' }}>
-        <div className="main-card-grid">
+      {/* 통합 카드 섹션: 2x2 그리드 배열 */}
+<section className="main-grid-section">
+  <div className="main-card-grid">
     
-    {/* 1. 서버 상태 (기존 스타일 유지) */}
-    <div className="community-card small" onClick={() => navigate('/server-status')} style={{ cursor: 'pointer' }}>
-      <div className="community-content" style={{ padding: '50px 20px', textAlign: 'center' }}>
-        <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>SERVER STATUS</span>
-        <h2 style={{ fontSize: '28px', marginTop: '10px', color: 'var(--theme-text)' }}>Paradox 서버 상태</h2>
-        <p style={{ color: 'var(--theme-secondary-text)', marginTop: '15px', fontSize: '16px' }}>서버의 운영 상태와 성능을 실시간으로 확인하세요.</p>
+    {/* 1. 커뮤니티 */}
+    <div className="community-card small" onClick={() => navigate('/community')}>
+      <div className="community-content">
+        <span className="tag purple">COMMUNITY</span>
+        <h2>사람들의 Paradox 프로젝트</h2>
+        <p>가장 강력한 언어로 배우는 논리적 사고의 정점</p>
       </div>
     </div>
 
-    {/* 2. 커뮤니티 (기존 스타일 유지) */}
-    <div className="community-card small" onClick={() => navigate('/community')} style={{ cursor: 'pointer' }}>
-      <div className="community-content" style={{ padding: '50px 20px', textAlign: 'center' }}>
-        <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>COMMUNITY</span>
-        <h2 style={{ fontSize: '28px', marginTop: '10px', color: 'var(--theme-text)' }}>사람들의 프로젝트</h2>
-        <p style={{ color: 'var(--theme-secondary-text)', marginTop: '15px', fontSize: '16px' }}>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
+    {/* 2. 문제집 */}
+    <div className="community-card small" onClick={() => navigate('/workbook')}>
+      <div className="community-content">
+        <span className="tag purple">문제집</span>
+        <h2>C언어 기초 문제집</h2>
+        <p>CodeUp 기초 100제를 기반으로 기초를 다지세요</p>
       </div>
     </div>
 
-    {/* 3. 문제집 (새로 추가 - 스타일 통일) */}
-    <div className="community-card small" onClick={() => navigate('/workbook')} style={{ cursor: 'pointer' }}>
-      <div className="community-content" style={{ padding: '50px 20px', textAlign: 'center' }}>
-        <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>WORKBOOK</span>
-        <h2 style={{ fontSize: '28px', marginTop: '10px', color: 'var(--theme-text)' }}>C언어 실력 키우기</h2>
-        <p style={{ color: 'var(--theme-secondary-text)', marginTop: '15px', fontSize: '16px' }}>단계별 예제 문제를 풀며 탄탄한 기초 실력을 쌓아보세요.</p>
+    {/* 3. 서버 상태 */}
+    <div className="community-card small" onClick={() => navigate('/server-status')}>
+      <div className="community-content">
+        <span className="tag blue">서버 상세</span>
+        <h2>Paradox 서버 상태</h2>
+        <p>서버의 운영 상태와 성능을 실시간으로 확인하세요</p>
       </div>
     </div>
 
-    {/* 4. 랭킹 (새로 추가 - 스타일 통일) */}
-    <div className="community-card small" onClick={() => navigate('/ranking')} style={{ cursor: 'pointer' }}>
-      <div className="community-content" style={{ padding: '50px 20px', textAlign: 'center' }}>
-        <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>RANKING</span>
-        <h2 style={{ fontSize: '28px', marginTop: '10px', color: 'var(--theme-text)' }}>나의 실력 확인</h2>
-        <p style={{ color: 'var(--theme-secondary-text)', marginTop: '15px', fontSize: '16px' }}>전체 사용자 중 나의 위치를 확인하고 성취감을 느껴보세요.</p>
+    {/* 4. 랭킹 */}
+    <div className="community-card small" onClick={() => navigate('/ranking')}>
+      <div className="community-content">
+        <span className="tag purple">랭킹</span>
+        <h2>실시간 랭킹 확인</h2>
+        <p>친구들과 점수를 비교하고 성취감을 느껴보세요</p>
       </div>
     </div>
 
   </div>
-  </section>
+</section>
     </div>
   );
 };
