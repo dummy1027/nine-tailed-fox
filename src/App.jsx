@@ -84,8 +84,8 @@ const Home = ({ message }) => {
     <div className="community-card small" onClick={() => navigate('/workbook')}>
       <div className="community-content">
         <span className="tag accent-purple">WORKBOOK</span>
-        <h2>C언어 기초 문제집</h2>
-        <p>CodeUp 기초 100제를 기반으로 기초를 다지세요.</p>
+        <h2>C언어 문제집</h2>
+        <p>문제를 풀면서 C언어 실력을 향상시키세요.</p>
       </div>
     </div>
 
