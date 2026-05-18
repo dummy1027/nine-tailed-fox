@@ -8,7 +8,6 @@ export default function Profile() {
   const [searchParams] = useSearchParams();
   const queryUsername = searchParams.get('username');
   const [stats, setStats] = useState({ posts: 0, comments: 0 });
-  const [solvedCount, setSolvedCount] = useState(0);
   const [viewedProfile, setViewedProfile] = useState(null);
   const [viewedStats, setViewedStats] = useState({ posts: 0, comments: 0 });
   const [profileLoading, setProfileLoading] = useState(false);
@@ -17,22 +16,43 @@ export default function Profile() {
     const fetchViewedProfile = async () => {
       setProfileLoading(true);
       // username 또는 display_name으로 프로필 검색 (게시물 작성자가 display_name으로 저장될 수 있으므로)
-      let { data } = await supabase
+      let { data, error } = await supabase
         .from('profiles')
-        .select('id, username, display_name, bio, created_at')
+        .select('id, username, display_name, bio, created_at, solved_problems')
         .eq('username', queryUsername)
         .maybeSingle();
 
+      if (error) {
+        console.warn('Failed to load viewed profile with solved_problems column, falling back...', error.message);
+        const fallback = await supabase
+          .from('profiles')
+          .select('id, username, display_name, bio, created_at, solved_problems')
+          .eq('username', queryUsername)
+          .maybeSingle();
+        data = fallback.data;
+      }
+
       // username으로 못 찾으면 display_name으로 재검색
       if (!data) {
-        const result = await supabase
+        let result = await supabase
           .from('profiles')
-          .select('id, username, display_name, bio, created_at')
+          .select('id, username, display_name, bio, created_at, solved_problems')
           .eq('display_name', queryUsername)
           .maybeSingle();
         data = result.data;
+        
+        if (result.error) {
+          console.warn('Failed to load viewed profile with solved_problems column, falling back...', result.error.message);
+          const fallback = await supabase
+            .from('profiles')
+            .select('id, username, display_name, bio, created_at, solved_problems')
+            .eq('display_name', queryUsername)
+            .maybeSingle();
+          data = fallback.data;
+        }
       }
       setViewedProfile(data);
+      console.log('[DEBUG fetchViewedProfile] setViewedProfile called with:', data);
 
       if (data) {
         const { count: postCount } = await supabase
@@ -63,6 +83,21 @@ export default function Profile() {
   const isOwnProfile = !queryUsername || (profile && queryUsername === profile.username);
   const displayProfile = isOwnProfile ? profile : viewedProfile;
   const displayStats = isOwnProfile ? stats : viewedStats;
+  
+  // 해결한 문제 수 계산: 본인 프로필일 때는 로컬스토리지 우선(실시간 반영용), 그 외에는 DB의 solved_problems 배열 우선
+  const getSolvedCount = () => {
+    console.log('[DEBUG getSolvedCount] isOwnProfile:', isOwnProfile, 'queryUsername:', queryUsername);
+    console.log('[DEBUG getSolvedCount] viewedProfile:', viewedProfile);
+    console.log('[DEBUG getSolvedCount] viewedProfile?.solved_problems:', viewedProfile?.solved_problems);
+    if (isOwnProfile) {
+      const saved = localStorage.getItem('paradox_solved');
+      if (saved) return JSON.parse(saved).length;
+      return profile?.solved_problems?.length || 0;
+    }
+    return viewedProfile?.solved_problems?.length || 0;
+  };
+
+  const displaySolvedCount = getSolvedCount();
 
   useEffect(() => {
     if (!user || !profile) return;
@@ -80,9 +115,6 @@ export default function Profile() {
 
       setStats({ posts: postCount || 0, comments: commentCount || 0 });
     };
-
-    const saved = localStorage.getItem('paradox_solved');
-    setSolvedCount(saved ? JSON.parse(saved).length : 0);
 
     fetchStats();
   }, [user, profile]);
@@ -148,14 +180,14 @@ export default function Profile() {
               fontWeight: 'bold',
               color: 'white'
             }}>
-              {displayProfile.username?.charAt(0).toUpperCase() || '?'}
+              {displayProfile?.username?.charAt(0).toUpperCase() || '?'}
             </div>
             <div style={{ flex: 1 }}>
               <h1 className="text-gradient" style={{ fontSize: '32px', marginBottom: '5px' }}>
-                {displayProfile.display_name || displayProfile.username}
+                {displayProfile?.display_name || displayProfile?.username}
               </h1>
               <p style={{ color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
-                @{displayProfile.username}
+                @{displayProfile?.username}
               </p>
               {!isOwnProfile && (
                 <p style={{ color: 'var(--theme-secondary-text)', fontSize: '14px', marginTop: '5px' }}>
@@ -165,9 +197,9 @@ export default function Profile() {
               <p style={{ color: 'var(--theme-secondary-text)', fontSize: '14px', marginTop: '10px' }}>
                 가입일: {joinDate}
               </p>
-              {displayProfile.bio && (
+              {displayProfile?.bio && (
                 <p style={{ color: 'var(--theme-text)', fontSize: '15px', marginTop: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
-                  {displayProfile.bio}
+                  {displayProfile?.bio}
                 </p>
               )}
             </div>
@@ -202,8 +234,8 @@ export default function Profile() {
               textAlign: 'center',
               border: '1px solid var(--theme-border)'
             }}>
-              <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{solvedCount}</div>
-              <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>해결한 문제</div>
+            <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{displaySolvedCount}</div>
+            <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>해결한 문제</div>
             </div>
         </div>
 
@@ -218,7 +250,7 @@ export default function Profile() {
             <div style={{ display: 'grid', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--theme-secondary-text)' }}>아이디</span>
-                <span style={{ color: 'var(--theme-text)' }}>{profile.username}</span>
+                <span style={{ color: 'var(--theme-text)' }}>{profile?.username}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--theme-secondary-text)' }}>이메일</span>

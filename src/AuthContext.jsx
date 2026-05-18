@@ -11,23 +11,45 @@ export function AuthProvider({ children }) {
 
   const loadProfile = useCallback(async (userId) => {
     if (!userId) { setProfile(null); return; }
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, username, display_name, bio')
-      .eq('id', userId)
-      .maybeSingle();
-    setProfile(data || null);
+    try {
+      let { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, bio, solved_problems')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Failed to load profile with solved_problems column, falling back...', error.message);
+        const fallback = await supabase
+          .from('profiles')
+          .select('id, username, display_name, bio')
+          .eq('id', userId)
+          .maybeSingle();
+        data = fallback.data;
+      }
+      setProfile(data || null);
+    } catch (err) {
+      console.error('loadProfile error:', err);
+      setProfile(null);
+    }
   }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      loadProfile(data.session?.user?.id);
+      if (data.session?.user?.id) {
+        loadProfile(data.session.user.id);
+      }
       setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      loadProfile(s?.user?.id);
+      if (s?.user?.id) {
+        loadProfile(s.user.id);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
     });
     return () => sub.subscription.unsubscribe();
   }, [loadProfile]);
