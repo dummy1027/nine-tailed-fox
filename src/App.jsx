@@ -212,12 +212,27 @@ int main() {
 }`,
       hint: '\\n은 줄바꿈을 의미합니다.',
       answer: '#include <stdio.h>\n\nint main() {\n    printf("Hello,\\n");\n    printf("World!");\n    return 0;\n}'
+    },
+    {
+      id: 'o3',
+      title: '스페셜 문자 출력하기',
+      description: '큰따옴표(")와 역슬래시(\\)를 포함한 문장을 출력해보자.',
+      input: '',
+      output: '"Hello \\ World!"',
+      code: `#include <stdio.h>
+
+int main() {
+    printf("\\"Hello \\\\ World!\\"");
+    return 0;
+}`,
+      hint: '큰따옴표는 \\", 역슬래시는 \\\\로 출력합니다.',
+      answer: '#include <stdio.h>\n\nint main() {\n    printf("\\"Hello \\\\ World!\\"");\n    return 0;\n}'
     }
   ],
   inputOperator: [
     {
       id: 'io1',
-      title: '[1010] 정수 1개 입력받아 그대로 출력하기',
+      title: '정수 1개 입력받아 그대로 출력하기',
       description: '정수형(int)으로 변수를 선언하고, 입력받은 정수값을 그대로 출력해보자.',
       input: '15',
       output: '15',
@@ -234,7 +249,7 @@ int main() {
     },
     {
       id: 'io2',
-      title: '[1011] 문자 1개 입력받아 그대로 출력하기',
+      title: '문자 1개 입력받아 그대로 출력하기',
       description: '문자형(char)으로 변수를 선언하고, 입력받은 문자를 그대로 출력해보자.',
       input: 'a',
       output: 'a',
@@ -251,7 +266,7 @@ int main() {
     },
     {
       id: 'io3',
-      title: '[1012] 실수 1개 입력받아 그대로 출력하기',
+      title: '실수 1개 입력받아 그대로 출력하기',
       description: '실수형(float)으로 변수를 선언하고, 입력받은 실수를 그대로 출력해보자.',
       input: '1.5',
       output: '1.5',
@@ -268,7 +283,7 @@ int main() {
     },
     {
       id: 'io4',
-      title: '[1013] 정수 2개 입력받아 그대로 출력하기',
+      title: '정수 2개 입력받아 그대로 출력하기',
       description: '공백으로 구분된 정수 2개를 입력받아 그대로 출력해보자.',
       input: '1 2',
       output: '1 2',
@@ -285,7 +300,7 @@ int main() {
     },
     {
       id: 'io5',
-      title: '[1014] 문자 2개 입력받아 순서 바꿔 출력하기',
+      title: '문자 2개 입력받아 순서 바꿔 출력하기',
       description: '문자 2개를 입력받고, 순서를 바꿔서 출력해보자.',
       input: 'a b',
       output: 'b a',
@@ -302,7 +317,7 @@ int main() {
     },
     {
       id: 'io6',
-      title: '[1015] 실수 입력받아 둘째 자리까지 출력하기',
+      title: '실수 입력받아 둘째 자리까지 출력하기',
       description: '실수를 입력받아 소수점 이하 둘째 자리까지 출력해보자.',
       input: '1.567',
       output: '1.57',
@@ -319,7 +334,7 @@ int main() {
     },
     {
       id: 'io7',
-      title: '[1038] 정수 2개 입력받아 합 출력하기',
+      title: '정수 2개 입력받아 합 출력하기',
       description: '정수 2개를 입력받아 합을 출력해보자.',
       input: '123 -123',
       output: '0',
@@ -336,7 +351,7 @@ int main() {
     },
     {
       id: 'io8',
-      title: '[1040] 정수 1개 입력받아 부호 바꿔 출력하기',
+      title: '정수 1개 입력받아 부호 바꿔 출력하기',
       description: '입력받은 정수의 부호를 바꿔서 출력해보자.',
       input: '10',
       output: '-10',
@@ -353,7 +368,7 @@ int main() {
     },
     {
       id: 'io9',
-      title: '[1041] 문자 1개 입력받아 다음 문자 출력하기',
+      title: '문자 1개 입력받아 다음 문자 출력하기',
       description: '영문자를 입력받아 그 다음 문자를 출력해보자.',
       input: 'a',
       output: 'b',
@@ -370,7 +385,7 @@ int main() {
     },
     {
       id: 'io10',
-      title: '[1042] 정수 2개 입력받아 나눈 몫 출력하기',
+      title: '정수 2개 입력받아 나눈 몫 출력하기',
       description: '두 정수를 입력받아 나눈 몫을 출력해보자.',
       input: '10 3',
       output: '3',
@@ -387,7 +402,7 @@ int main() {
     },
     {
       id: 'io11',
-      title: '[1043] 정수 2개 입력받아 나눈 나머지 출력하기',
+      title: '정수 2개 입력받아 나눈 나머지 출력하기',
       description: '두 정수를 입력받아 나눗셈의 나머지를 출력해보자.',
       input: '10 3',
       output: '1',
@@ -404,7 +419,7 @@ int main() {
     },
     {
       id: 'io12',
-      title: '[1045] 정수 2개 입력받아 자동 계산하기',
+      title: '정수 2개 입력받아 자동 계산하기',
       description: '두 정수의 합, 차, 곱, 몫, 나머지, 나눈 값을 출력해보자.',
       input: '10 3',
       output: '13\n7\n30\n3\n1\n3.33',
@@ -426,7 +441,7 @@ int main() {
     },
     {
       id: 'io13',
-      title: '[1046] 정수 3개 입력받아 합과 평균 출력하기',
+      title: '정수 3개 입력받아 합과 평균 출력하기',
       description: '세 정수를 입력받아 합과 평균을 출력해보자.',
       input: '1 2 3',
       output: '6\n2.0',
@@ -445,7 +460,7 @@ int main() {
     },
     {
       id: 'io14',
-      title: '[1031] 10진 정수를 8진수로 출력하기',
+      title: '10진 정수를 8진수로 출력하기',
       description: '10진수 정수를 입력받아 8진수로 출력해보자.',
       input: '10',
       output: '12',
@@ -462,7 +477,7 @@ int main() {
     },
     {
       id: 'io15',
-      title: '[1032] 10진 정수를 16진수로 출력하기',
+      title: '10진 정수를 16진수로 출력하기',
       description: '10진수 정수를 입력받아 16진수로 출력해보자.',
       input: '255',
       output: 'ff',
@@ -479,7 +494,7 @@ int main() {
     },
     {
       id: 'io16',
-      title: '[1037] 정수를 아스키 문자로 출력하기',
+      title: '정수를 아스키 문자로 출력하기',
       description: '아스키 코드 값을 입력받아 해당 문자를 출력해보자.',
       input: '65',
       output: 'A',
@@ -496,7 +511,7 @@ int main() {
     },
     {
       id: 'io17',
-      title: '[1063] 두 정수 입력받아 큰 수 출력하기',
+      title: '두 정수 입력받아 큰 수 출력하기',
       description: '두 정수를 입력받아 큰 수를 출력해보자. (삼항연산자 사용)',
       input: '3 5',
       output: '5',
@@ -515,7 +530,7 @@ int main() {
   conditional: [
     {
       id: 'c1',
-      title: '[1114] 두 정수의 덧셈',
+      title: '두 정수의 덧셈',
       description: '두 정수를 입력받아 합을 출력해보자.',
       input: '1 2',
       output: '3',
@@ -532,7 +547,7 @@ int main() {
     },
     {
       id: 'c2',
-      title: '[1116] 사칙연산 계산기',
+      title: '사칙연산 계산기',
       description: '두 정수와 연산자를 입력받아 계산 결과를 출력해보자.',
       input: '3 + 5',
       output: '8',
@@ -555,7 +570,7 @@ int main() {
     },
     {
       id: 'c3',
-      title: '[1118] 삼각형의 넓이 구하기',
+      title: '삼각형의 넓이 구하기',
       description: '밑변과 높이를 입력받아 삼각형의 넓이를 출력해보자.',
       input: '5 4',
       output: '10.00',
@@ -572,7 +587,7 @@ int main() {
     },
     {
       id: 'c4',
-      title: '[1120] 세 수의 평균',
+      title: '세 수의 평균',
       description: '세 실수를 입력받아 평균을 출력해보자.',
       input: '1.0 2.0 3.0',
       output: '2.0',
@@ -589,7 +604,7 @@ int main() {
     },
     {
       id: 'c5',
-      title: '[1123] 섭씨 온도를 화씨 온도로 변환',
+      title: '섭씨 온도를 화씨 온도로 변환',
       description: '섭씨 온도를 화씨 온도로 변환하여 출력해보자.',
       input: '0',
       output: '32.0',
@@ -604,6 +619,46 @@ int main() {
 }`,
       hint: 'F = C × 9/5 + 32',
       answer: '#include <stdio.h>\n\nint main() {\n    double c;\n    scanf("%lf", &c);\n    double f = c * 9.0 / 5.0 + 32.0;\n    printf("%.1f", f);\n    return 0;\n}'
+    },
+    {
+      id: 'c6',
+      title: '10보다 작은 수',
+      description: '정수 1개를 입력받아 10보다 작으면 "small"을 출력해보자.',
+      input: '5',
+      output: 'small',
+      code: `#include <stdio.h>
+
+int main() {
+    int n;
+    scanf("%d", &n);
+    if (n < 10) {
+        printf("small");
+    }
+    return 0;
+}`,
+      hint: 'if (조건식) { ... } 형태로 작성합니다.',
+      answer: '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    if (n < 10) {\n        printf("small");\n    }\n    return 0;\n}'
+    },
+    {
+      id: 'c7',
+      title: '10보다 작은 수 (else)',
+      description: '정수가 10보다 작으면 "small", 10 이상이면 "big"을 출력해보자.',
+      input: '15',
+      output: 'big',
+      code: `#include <stdio.h>
+
+int main() {
+    int n;
+    scanf("%d", &n);
+    if (n < 10) {
+        printf("small");
+    } else {
+        printf("big");
+    }
+    return 0;
+}`,
+      hint: 'if-else 구조를 사용합니다.',
+      answer: '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    if (n < 10) {\n        printf("small");\n    } else {\n        printf("big");\n    }\n    return 0;\n}'
     }
   ],
   loop: [
@@ -718,6 +773,25 @@ int main() {
 }`,
       hint: '이중 반복문을 사용합니다.',
       answer: '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= i; j++) {\n            printf("*");\n        }\n        printf("\\n");\n    }\n    return 0;\n}'
+    },
+    {
+      id: 'l7',
+      title: 'a부터 b까지 출력하기',
+      description: '두 정수 a, b를 입력받아 a부터 b까지 순서대로 출력해보자. (a <= b)',
+      input: '3 8',
+      output: '3 4 5 6 7 8',
+      code: `#include <stdio.h>
+
+int main() {
+    int a, b;
+    scanf("%d %d", &a, &b);
+    for (int i = a; i <= b; i++) {
+        printf("%d ", i);
+    }
+    return 0;
+}`,
+      hint: '반복문의 초기값을 a로, 조건식을 i <= b로 설정합니다.',
+      answer: '#include <stdio.h>\n\nint main() {\n    int a, b;\n    scanf("%d %d", &a, &b);\n    for (int i = a; i <= b; i++) {\n        printf("%d ", i);\n    }\n    return 0;\n}'
     }
   ],
   array: [
@@ -811,6 +885,29 @@ int main() {
 }`,
       hint: '이중 반복문으로 2차원 배열을 탐색합니다.',
       answer: '#include <stdio.h>\n\nint main() {\n    int arr[3][3];\n    for (int i = 0; i < 3; i++) {\n        for (int j = 0; j < 3; j++) {\n            scanf("%d", &arr[i][j]);\n        }\n    }\n    for (int i = 0; i < 3; i++) {\n        int sum = 0;\n        for (int j = 0; j < 3; j++) {\n            sum += arr[i][j];\n        }\n        printf("%d\\n", sum);\n    }\n    return 0;\n}'
+    },
+    {
+      id: 'a5',
+      title: '배열에서 특정 값의 개수 세기',
+      description: '5개의 정수와 찾고자 하는 정수 k를 입력받아 k의 개수를 출력해보자.',
+      input: '1 2 3 2 5\n2',
+      output: '2',
+      code: `#include <stdio.h>
+
+int main() {
+    int arr[5], k, count = 0;
+    for (int i = 0; i < 5; i++) {
+        scanf("%d", &arr[i]);
+    }
+    scanf("%d", &k);
+    for (int i = 0; i < 5; i++) {
+        if (arr[i] == k) count++;
+    }
+    printf("%d", count);
+    return 0;
+}`,
+      hint: '배열을 순회하면서 조건에 맞는 요소를 발견하면 카운트를 증가시킵니다.',
+      answer: '#include <stdio.h>\n\nint main() {\n    int arr[5], k, count = 0;\n    for (int i = 0; i < 5; i++) {\n        scanf("%d", &arr[i]);\n    }\n    scanf("%d", &k);\n    for (int i = 0; i < 5; i++) {\n        if (arr[i] == k) count++;\n    }\n    printf("%d", count);\n    return 0;\n}'
     }
   ],
   string: [
@@ -870,6 +967,30 @@ int main() {
 }`,
       hint: 'strcmp는 두 문자열을 비교합니다 (a<b:음수, a==b:0, a>b:양수)',
       answer: '#include <stdio.h>\n#include <string.h>\n\nint main() {\n    char a[100], b[100];\n    scanf("%s %s", a, b);\n    printf("%d", strcmp(a, b));\n    return 0;\n}'
+    },
+    {
+      id: 's4',
+      title: '알파벳 대문자로 변환하기',
+      description: '소문자로 된 문자열을 입력받아 대문자로 변환하여 출력해보자.',
+      input: 'paradox',
+      output: 'PARADOX',
+      code: `#include <stdio.h>
+#include <string.h>
+
+int main() {
+    char str[100];
+    scanf("%s", str);
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        if (str[i] >= 'a' && str[i] <= 'z') {
+            str[i] = str[i] - 32;
+        }
+    }
+    printf("%s", str);
+    return 0;
+}`,
+      hint: '소문자와 대문자의 아스키 코드 차이는 32입니다 (\'a\' - \'A\' = 32).',
+      answer: '#include <stdio.h>\n#include <string.h>\n\nint main() {\n    char str[100];\n    scanf("%s", str);\n    int len = strlen(str);\n    for (int i = 0; i < len; i++) {\n        if (str[i] >= \'a\' && str[i] <= \'z\') {\n            str[i] = str[i] - 32;\n        }\n    }\n    printf("%s", str);\n    return 0;\n}'
     }
   ],
   function: [
@@ -937,6 +1058,27 @@ int main() {
 }`,
       hint: '피보나치: F(n) = F(n-1) + F(n-2), F(0)=0, F(1)=1',
       answer: '#include <stdio.h>\n\nint fibonacci(int n) {\n    if (n <= 1) return n;\n    return fibonacci(n - 1) + fibonacci(n - 2);\n}\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    printf("%d", fibonacci(n));\n    return 0;\n}'
+    },
+    {
+      id: 'f4',
+      title: '절대값을 구하는 함수',
+      description: '정수를 입력받아 절대값을 반환하는 함수 abs_val을 작성해보자.',
+      input: '-75',
+      output: '75',
+      code: `#include <stdio.h>
+
+int abs_val(int n) {
+    return n < 0 ? -n : n;
+}
+
+int main() {
+    int n;
+    scanf("%d", &n);
+    printf("%d", abs_val(n));
+    return 0;
+}`,
+      hint: '음수일 경우 -를 붙여 반환하고, 양수일 경우 그대로 반환합니다.',
+      answer: '#include <stdio.h>\n\nint abs_val(int n) {\n    return n < 0 ? -n : n;\n}\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    printf("%d", abs_val(n));\n    return 0;\n}'
     }
   ],
   structure: [
@@ -984,6 +1126,32 @@ int main() {
 }`,
       hint: '거리 공식: √((x2-x1)² + (y2-y1)²)',
       answer: '#include <stdio.h>\n#include <math.h>\n\nstruct Point {\n    double x, y;\n};\n\nint main() {\n    struct Point p1, p2;\n    scanf("%lf %lf %lf %lf", &p1.x, &p1.y, &p2.x, &p2.y);\n    double dist = sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));\n    printf("%.1f", dist);\n    return 0;\n}'
+    },
+    {
+      id: 'st3',
+      title: '학생 정보 비교하기',
+      description: '두 학생의 이름과 점수를 입력받아, 점수가 더 높은 학생의 이름을 출력해보자.',
+      input: '철수 85 영희 92',
+      output: '영희',
+      code: `#include <stdio.h>
+
+struct Student {
+    char name[20];
+    int score;
+};
+
+int main() {
+    struct Student s1, s2;
+    scanf("%s %d %s %d", s1.name, &s1.score, s2.name, &s2.score);
+    if (s1.score > s2.score) {
+        printf("%s", s1.name);
+    } else {
+        printf("%s", s2.name);
+    }
+    return 0;
+}`,
+      hint: '구조체 변수 여러 개를 각각 선언하고 사용합니다.',
+      answer: '#include <stdio.h>\n\nstruct Student {\n    char name[20];\n    int score;\n};\n\nint main() {\n    struct Student s1, s2;\n    scanf("%s %d %s %d", s1.name, &s1.score, s2.name, &s2.score);\n    if (s1.score > s2.score) {\n        printf("%s", s1.name);\n    } else {\n        printf("%s", s2.name);\n    }\n    return 0;\n}'
     }
   ]
 };
