@@ -47,3 +47,7 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 해결한 문제 목록 컬럼 추가
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS solved_problems TEXT[] DEFAULT '{}';
+

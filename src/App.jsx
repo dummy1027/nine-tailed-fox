@@ -7,6 +7,7 @@ import Profile from './Profile';
 import ProfileSettings from './ProfileSettings';
 import logo from './assets/logo.png';
 import { AuthProvider, useAuth } from './AuthContext';
+import { supabase } from './supabaseClient';
 import AuthModal from './AuthModal';
 import { User, Settings } from 'lucide-react';
 
@@ -1209,6 +1210,7 @@ const FUNCTION_KEYWORDS = ['printf', 'scanf', 'main', 'if', 'while', 'for', 'swi
 const C_TEMPLATE = "#include <stdio.h>\n\nint main() {\n\t\n\treturn 0;\n}";
 
 const Workbook = () => {
+  const { user, profile } = useAuth();
   const [selectedLevel, setSelectedLevel] = useState('output');
   const [selectedProblem, setSelectedProblem] = useState(null);
   const [showCode, setShowCode] = useState(false);
@@ -1226,6 +1228,20 @@ const Workbook = () => {
     const saved = localStorage.getItem('paradox_solved');
     return saved ? JSON.parse(saved) : [];
   });
+
+  useEffect(() => {
+    if (profile && Array.isArray(profile.solved_problems)) {
+      const saved = localStorage.getItem('paradox_solved');
+      const localSolved = saved ? JSON.parse(saved) : [];
+      
+      const mergedSolved = Array.from(new Set([...localSolved, ...profile.solved_problems]));
+      
+      if (mergedSolved.length !== localSolved.length) {
+        setSolvedProblems(mergedSolved);
+        localStorage.setItem('paradox_solved', JSON.stringify(mergedSolved));
+      }
+    }
+  }, [profile]);
 
   const textareaRef = useRef(null);
   const mirrorRef = useRef(null);
@@ -1507,6 +1523,16 @@ const Workbook = () => {
       const newSolved = [...solvedProblems, selectedProblem.id];
       setSolvedProblems(newSolved);
       localStorage.setItem('paradox_solved', JSON.stringify(newSolved));
+
+      if (user) {
+        supabase
+          .from('profiles')
+          .update({ solved_problems: newSolved })
+          .eq('id', user.id)
+          .then(({ error }) => {
+            if (error) console.error('Error syncing solved problems to DB:', error);
+          });
+      }
     }
   };
 
@@ -2133,12 +2159,6 @@ const Ranking = () => {
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, CheckCircle2, XCircle, Clock, Image, Globe, Monitor } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://klnwpmhqqaokwktqtbyg.supabase.co'; 
-const supabaseKey = 'sb_publishable_tKUEGM3XejDpmPCl7S5BYg_7-Apj6Hl';
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const statusConfig = {
   online: { color: '#23a559', icon: CheckCircle2, label: 'Operational' },
