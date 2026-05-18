@@ -1,30 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import { useAuth } from './AuthContext';
 
 const Community = () => {
+  const { profile } = useAuth();
   const [posts, setPosts] = useState([]);
-  const [view, setView] = useState('list'); // 'list', 'detail', 'write'
+  const [view, setView] = useState('list');
   const [selectedPost, setSelectedPost] = useState(null);
 
-  // New post form state
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [author, setAuthor] = useState('');
   const [alignment, setAlignment] = useState('left');
   const [likedPosts, setLikedPosts] = useState([]);
-  const [sortBy, setSortBy] = useState('latest'); // 'latest', 'views', 'likes'
+  const [sortBy, setSortBy] = useState('latest');
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Comment states
   const [comments, setComments] = useState([]);
-  const [commentAuthor, setCommentAuthor] = useState('');
   const [commentContent, setCommentContent] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
-  const [replyingTo, setReplyingTo] = useState(null); // ID of the comment being replied to
-  const [replyAuthor, setReplyAuthor] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
   const [replyContent, setReplyContent] = useState('');
 
   // API에서 게시글 로드
@@ -108,8 +105,12 @@ const Community = () => {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!commentAuthor || !commentContent) {
-      alert('닉네임과 내용을 입력해주세요!');
+    if (!profile) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    if (!commentContent) {
+      alert('내용을 입력해주세요!');
       return;
     }
 
@@ -118,7 +119,7 @@ const Community = () => {
         .from('comments')
         .insert([{ 
           post_id: selectedPost.id, 
-          author: commentAuthor, 
+          author: profile.display_name || profile.username, 
           content: commentContent 
         }]);
 
@@ -133,8 +134,12 @@ const Community = () => {
   };
 
   const handleReplySubmit = async (parentId) => {
-    if (!replyAuthor || !replyContent) {
-      alert('닉네임과 답글 내용을 입력해주세요!');
+    if (!profile) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    if (!replyContent) {
+      alert('답글 내용을 입력해주세요!');
       return;
     }
 
@@ -142,7 +147,7 @@ const Community = () => {
       const { error } = await supabase
         .from('comments')
         .insert([{ 
-          author: replyAuthor, 
+          author: profile.display_name || profile.username, 
           content: replyContent, 
           parent_id: parentId,
           post_id: selectedPost.id
@@ -160,8 +165,12 @@ const Community = () => {
   };
 
   const savePost = async () => {
-    if (!title || !content || !author) {
-      alert('모든 필드를 입력해주세요!');
+    if (!profile) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    if (!title || !content) {
+      alert('제목과 내용을 입력해주세요!');
       return;
     }
 
@@ -171,16 +180,15 @@ const Community = () => {
         .insert([{ 
           title, 
           content, 
-          author, 
+          author: profile.display_name || profile.username, 
           text_align: alignment 
         }]);
 
       if (error) throw error;
 
-      await fetchPosts(); // 목록 새로고침
+      await fetchPosts();
       setTitle('');
       setContent('');
-      setAuthor('');
       setView('list');
     } catch (err) {
       console.error('글 작성 실패:', err);
@@ -474,25 +482,23 @@ const Community = () => {
 
         {/* 댓글 작성 폼 */}
         <form onSubmit={handleCommentSubmit} style={{ backgroundColor: 'var(--theme-surface)', padding: '25px', borderRadius: '15px', border: '1px solid var(--theme-border)', marginBottom: '30px', textAlign: 'left' }}>
-          <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
-            <input
-              type="text"
-              placeholder="닉네임"
-              value={commentAuthor}
-              onChange={(e) => setCommentAuthor(e.target.value)}
-              style={{ padding: '10px 15px', borderRadius: '8px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', width: '200px' }}
-            />
-          </div>
+          {!profile && (
+            <div style={{ marginBottom: '15px', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>
+              댓글을 작성하려면 <a href="#" onClick={(e) => { e.preventDefault(); alert('로그인이 필요합니다.'); }} style={{ color: '#cb6ce6' }}>로그인</a>이 필요합니다.
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '10px' }}>
             <textarea
-              placeholder="댓글을 남겨보세요..."
+              placeholder={profile ? "댓글을 남겨보세요..." : "로그인 후 댓글을 남겨보세요..."}
               value={commentContent}
               onChange={(e) => setCommentContent(e.target.value)}
-              style={{ flex: 1, padding: '15px', borderRadius: '8px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', resize: 'none', height: '80px', textAlign: 'left' }}
+              disabled={!profile}
+              style={{ flex: 1, padding: '15px', borderRadius: '8px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', resize: 'none', height: '80px', textAlign: 'left', opacity: profile ? 1 : 0.6 }}
             />
             <button
               type="submit"
-              style={{ padding: '0 30px', borderRadius: '8px', backgroundColor: '#cb6ce6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+              disabled={!profile}
+              style={{ padding: '0 30px', borderRadius: '8px', backgroundColor: profile ? '#cb6ce6' : '#666', color: 'white', border: 'none', fontWeight: 'bold', cursor: profile ? 'pointer' : 'default' }}
             >
               등록
             </button>
@@ -543,7 +549,6 @@ const Community = () => {
                                 setReplyingTo(null);
                               } else {
                                 setReplyingTo(comment.id);
-                                if (!replyAuthor && commentAuthor) setReplyAuthor(commentAuthor);
                               }
                             }}
                             style={{ background: 'none', border: 'none', color: '#cb6ce6', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', padding: '0' }}
@@ -556,15 +561,6 @@ const Community = () => {
                       {/* 답글 입력창 (해당 댓글 바로 아래) */}
                       {replyingTo === comment.id && (
                         <div style={{ marginLeft: depth === 0 ? '52px' : '44px', backgroundColor: 'rgba(203, 110, 230, 0.05)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(203, 110, 230, 0.2)' }}>
-                          <div style={{ marginBottom: '10px' }}>
-                            <input
-                              type="text"
-                              placeholder="닉네임"
-                              value={replyAuthor}
-                              onChange={(e) => setReplyAuthor(e.target.value)}
-                              style={{ padding: '8px 12px', borderRadius: '6px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', width: '150px', fontSize: '13px' }}
-                            />
-                          </div>
                           <textarea
                             placeholder="답글을 남겨보세요..."
                             value={replyContent}
@@ -595,90 +591,86 @@ const Community = () => {
     <div style={{ animation: 'fadeIn 0.5s ease' }}>
       <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', fontWeight: '800' }}>새 글 작성</h1>
 
-      <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '20px', padding: '40px', border: '1px solid var(--theme-border)', color: 'var(--theme-text)' }}>
-        <div style={{ marginBottom: '25px' }}>
-          <label style={{ display: 'block', color: 'var(--theme-secondary-text)', marginBottom: '10px', fontSize: '14px' }}>제목</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="제목을 입력하세요"
-            style={{ width: '100%', padding: '15px', borderRadius: '10px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', fontSize: '16px', outline: 'none' }}
-          />
+      {!profile ? (
+        <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '20px', padding: '60px', border: '1px solid var(--theme-border)', color: 'var(--theme-secondary-text)', textAlign: 'center' }}>
+          <p style={{ fontSize: '18px', marginBottom: '20px' }}>글을 작성하려면 로그인이 필요합니다.</p>
+          <button onClick={() => setView('list')} style={{ padding: '12px 30px', borderRadius: '10px', backgroundColor: '#cb6ce6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>목록으로 돌아가기</button>
         </div>
-
-        <div style={{ marginBottom: '25px' }}>
-          <label style={{ display: 'block', color: 'var(--theme-secondary-text)', marginBottom: '10px', fontSize: '14px' }}>작성자</label>
-          <input
-            type="text"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            placeholder="닉네임"
-            style={{ width: '100%', padding: '15px', borderRadius: '10px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', fontSize: '16px', outline: 'none' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '35px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <label style={{ color: 'var(--theme-secondary-text)', fontSize: '14px' }}>내용</label>
-            <div style={{ display: 'flex', gap: '5px', backgroundColor: 'var(--theme-bg)', padding: '5px', borderRadius: '8px', border: '1px solid var(--theme-border)' }}>
-              {['left', 'center', 'right'].map(align => (
-                <button
-                  key={align}
-                  onClick={() => setAlignment(align)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: '5px',
-                    backgroundColor: alignment === align ? 'var(--theme-surface)' : 'transparent',
-                    color: alignment === align ? '#cb6ce6' : 'var(--theme-secondary-text)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    textTransform: 'capitalize'
-                  }}
-                >
-                  {align}
-                </button>
-              ))}
-            </div>
+      ) : (
+        <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '20px', padding: '40px', border: '1px solid var(--theme-border)', color: 'var(--theme-text)' }}>
+          <div style={{ marginBottom: '25px' }}>
+            <label style={{ display: 'block', color: 'var(--theme-secondary-text)', marginBottom: '10px', fontSize: '14px' }}>제목</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="제목을 입력하세요"
+              style={{ width: '100%', padding: '15px', borderRadius: '10px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', fontSize: '16px', outline: 'none' }}
+            />
           </div>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="내용을 작성해주세요"
-            style={{
-              width: '100%',
-              height: '300px',
-              padding: '15px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--theme-bg)',
-              border: '1px solid var(--theme-border)',
-              color: 'var(--theme-text)',
-              fontSize: '16px',
-              outline: 'none',
-              resize: 'none',
-              lineHeight: '1.6',
-              textAlign: alignment
-            }}
-          />
-        </div>
 
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <button
-            onClick={savePost}
-            style={{ padding: '15px 40px', borderRadius: '10px', backgroundColor: '#cb6ce6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            등록하기
-          </button>
-          <button
-            onClick={() => setView('list')}
-            style={{ padding: '15px 40px', borderRadius: '10px', backgroundColor: '#2c2c2e', color: '#8e8e93', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            취소
-          </button>
+          <div style={{ marginBottom: '35px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <label style={{ color: 'var(--theme-secondary-text)', fontSize: '14px' }}>내용</label>
+              <div style={{ display: 'flex', gap: '5px', backgroundColor: 'var(--theme-bg)', padding: '5px', borderRadius: '8px', border: '1px solid var(--theme-border)' }}>
+                {['left', 'center', 'right'].map(align => (
+                  <button
+                    key={align}
+                    onClick={() => setAlignment(align)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '5px',
+                      backgroundColor: alignment === align ? 'var(--theme-surface)' : 'transparent',
+                      color: alignment === align ? '#cb6ce6' : 'var(--theme-secondary-text)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    {align}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="내용을 작성해주세요"
+              style={{
+                width: '100%',
+                height: '300px',
+                padding: '15px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--theme-bg)',
+                border: '1px solid var(--theme-border)',
+                color: 'var(--theme-text)',
+                fontSize: '16px',
+                outline: 'none',
+                resize: 'none',
+                lineHeight: '1.6',
+                textAlign: alignment
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <button
+              onClick={savePost}
+              style={{ padding: '15px 40px', borderRadius: '10px', backgroundColor: '#cb6ce6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              등록하기
+            </button>
+            <button
+              onClick={() => setView('list')}
+              style={{ padding: '15px 40px', borderRadius: '10px', backgroundColor: '#2c2c2e', color: '#8e8e93', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              취소
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 
