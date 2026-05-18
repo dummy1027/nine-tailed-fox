@@ -16,11 +16,22 @@ export default function Profile() {
   useEffect(() => {
     const fetchViewedProfile = async () => {
       setProfileLoading(true);
-      const { data } = await supabase
+      // username 또는 display_name으로 프로필 검색 (게시물 작성자가 display_name으로 저장될 수 있으므로)
+      let { data } = await supabase
         .from('profiles')
         .select('id, username, display_name, bio, created_at')
         .eq('username', queryUsername)
         .maybeSingle();
+
+      // username으로 못 찾으면 display_name으로 재검색
+      if (!data) {
+        const result = await supabase
+          .from('profiles')
+          .select('id, username, display_name, bio, created_at')
+          .eq('display_name', queryUsername)
+          .maybeSingle();
+        data = result.data;
+      }
       setViewedProfile(data);
 
       if (data) {
@@ -184,8 +195,7 @@ export default function Profile() {
             <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{displayStats.comments}</div>
             <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>댓글</div>
           </div>
-          {isOwnProfile && (
-            <div style={{
+          <div style={{
               background: 'var(--theme-surface)',
               borderRadius: '16px',
               padding: '25px',
@@ -195,7 +205,6 @@ export default function Profile() {
               <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{solvedCount}</div>
               <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>해결한 문제</div>
             </div>
-          )}
         </div>
 
         {isOwnProfile && (

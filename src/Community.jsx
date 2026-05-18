@@ -19,7 +19,7 @@ const Community = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [comments, setComments] = useState([]);
   const [commentContent, setCommentContent] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -88,7 +88,7 @@ const Community = () => {
     fetchPosts(searchQuery);
   };
 
-useEffect(() => {
+  useEffect(() => {
     fetchPosts('', authorFilter);
 
     const savedLikes = localStorage.getItem('paradox_liked_posts');
@@ -157,10 +157,10 @@ useEffect(() => {
     try {
       const { error } = await supabase
         .from('comments')
-        .insert([{ 
-          post_id: selectedPost.id, 
-          author: profile.display_name || profile.username, 
-          content: commentContent 
+        .insert([{
+          post_id: selectedPost.id,
+          author: profile.display_name || profile.username,
+          content: commentContent
         }]);
 
       if (error) throw error;
@@ -186,9 +186,9 @@ useEffect(() => {
     try {
       const { error } = await supabase
         .from('comments')
-        .insert([{ 
-          author: profile.display_name || profile.username, 
-          content: replyContent, 
+        .insert([{
+          author: profile.display_name || profile.username,
+          content: replyContent,
           parent_id: parentId,
           post_id: selectedPost.id
         }]);
@@ -217,11 +217,11 @@ useEffect(() => {
     try {
       const { error } = await supabase
         .from('posts')
-        .insert([{ 
-          title, 
-          content, 
-          author: profile.display_name || profile.username, 
-          text_align: alignment 
+        .insert([{
+          title,
+          content,
+          author: profile.display_name || profile.username,
+          text_align: alignment
         }]);
 
       if (error) throw error;
@@ -445,13 +445,13 @@ useEffect(() => {
                     >
                       <td style={{ padding: '20px', fontWeight: '500' }}>{post.title}</td>
                       <td style={{ padding: '20px', color: 'var(--theme-secondary-text)', position: 'relative' }}>
-                          <span
-                            onClick={(e) => handleAuthorClick(post.author, e)}
-                            style={{ cursor: 'pointer', color: '#cb6ce6', fontWeight: '500' }}
-                          >
-                            {post.author}
-                          </span>
-                        </td>
+                        <span
+                          onClick={(e) => handleAuthorClick(post.author, e)}
+                          style={{ cursor: 'pointer', color: '#cb6ce6', fontWeight: '500' }}
+                        >
+                          {post.author}
+                        </span>
+                      </td>
                       <td style={{ padding: '20px', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>
                         {new Date(post.created_at || post.date).toLocaleDateString()}
                       </td>
@@ -464,67 +464,6 @@ useEffect(() => {
             </table>
           )}
         </div>
-
-        {authorMenuTarget && (
-          <div
-            className="author-menu"
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              backgroundColor: 'var(--theme-surface)',
-              border: '1px solid var(--theme-border)',
-              borderRadius: '12px',
-              padding: '10px',
-              zIndex: 1000,
-              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-              minWidth: '180px'
-            }}
-          >
-            <div style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--theme-secondary-text)', borderBottom: '1px solid var(--theme-border)', marginBottom: '5px' }}>
-              {authorMenuTarget}님의 게시글
-            </div>
-            <button
-              onClick={handleViewProfile}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '10px 15px',
-                textAlign: 'left',
-                background: 'none',
-                border: 'none',
-                color: 'var(--theme-text)',
-                cursor: 'pointer',
-                borderRadius: '8px',
-                fontSize: '14px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              👤 프로필 보기
-            </button>
-            <button
-              onClick={handleViewPosts}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '10px 15px',
-                textAlign: 'left',
-                background: 'none',
-                border: 'none',
-                color: 'var(--theme-text)',
-                cursor: 'pointer',
-                borderRadius: '8px',
-                fontSize: '14px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              📝 쓴 글 보기
-            </button>
-          </div>
-        )}
       </div>
     );
   };
@@ -541,7 +480,12 @@ useEffect(() => {
       <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '20px', padding: '40px', border: '1px solid var(--theme-border)', color: 'var(--theme-text)' }}>
         <h2 style={{ fontSize: '2rem', marginBottom: '15px' }}>{selectedPost.title}</h2>
         <div style={{ display: 'flex', gap: '20px', color: 'var(--theme-secondary-text)', fontSize: '14px', marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid var(--theme-border)' }}>
-          <span>작성자: <b>{selectedPost.author}</b></span>
+          <span>작성자: <b
+            onClick={(e) => handleAuthorClick(selectedPost.author, e)}
+            style={{ cursor: 'pointer', color: '#cb6ce6', transition: 'opacity 0.2s' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+          >{selectedPost.author}</b></span>
           <span>날짜: {selectedPost.date}</span>
           <span>조회수: {selectedPost.views}</span>
           <span>좋아요: {selectedPost.likes || 0}</span>
@@ -644,14 +588,14 @@ useEffect(() => {
                       {/* 댓글 본체 */}
                       <div style={{ display: 'flex', gap: '12px', animation: 'fadeIn 0.3s ease' }}>
                         {depth > 0 && <div style={{ color: 'var(--theme-border)', fontSize: '14px', marginTop: '8px' }}>└</div>}
-                        <div style={{ 
-                          width: depth === 0 ? '40px' : '32px', 
-                          height: depth === 0 ? '40px' : '32px', 
-                          borderRadius: '50%', 
-                          backgroundColor: 'var(--theme-border)', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
+                        <div style={{
+                          width: depth === 0 ? '40px' : '32px',
+                          height: depth === 0 ? '40px' : '32px',
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--theme-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           fontSize: depth === 0 ? '20px' : '16px',
                           flexShrink: 0
                         }}>
@@ -665,7 +609,7 @@ useEffect(() => {
                           <div style={{ color: 'var(--theme-text)', lineHeight: '1.5', fontSize: depth === 0 ? '16px' : '15px', marginBottom: '8px' }}>
                             {comment.content}
                           </div>
-                          <button 
+                          <button
                             onClick={() => {
                               if (replyingTo === comment.id) {
                                 setReplyingTo(null);
@@ -810,10 +754,71 @@ useEffect(() => {
         }
       `}</style>
 
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative' }}>
         {view === 'list' && renderList()}
         {view === 'detail' && renderDetail()}
         {view === 'write' && renderWrite()}
+
+        {authorMenuTarget && (
+          <div
+            className="author-menu"
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'var(--theme-surface)',
+              border: '1px solid var(--theme-border)',
+              borderRadius: '12px',
+              padding: '10px',
+              zIndex: 1000,
+              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+              minWidth: '180px'
+            }}
+          >
+            <div style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--theme-secondary-text)', borderBottom: '1px solid var(--theme-border)', marginBottom: '5px' }}>
+              {authorMenuTarget}님의 게시글
+            </div>
+            <button
+              onClick={handleViewProfile}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '10px 15px',
+                textAlign: 'left',
+                background: 'none',
+                border: 'none',
+                color: 'var(--theme-text)',
+                cursor: 'pointer',
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              👤 프로필 보기
+            </button>
+            <button
+              onClick={handleViewPosts}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '10px 15px',
+                textAlign: 'left',
+                background: 'none',
+                border: 'none',
+                color: 'var(--theme-text)',
+                cursor: 'pointer',
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              📝 쓴 글 보기
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
