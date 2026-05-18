@@ -68,29 +68,48 @@ const Home = ({ message }) => {
         </div>
       </section>
 
-      {/* 커뮤니티 카드 섹션 */}
-      <section className="community-section" style={{ paddingBottom: '100px' }}>
-        <div className="community-card" onClick={() => navigate('/community')} style={{ cursor: 'pointer', margin: '0 auto', maxWidth: '900px' }}>
-          <div className="community-content" style={{ padding: '60px', textAlign: 'center' }}>
-            <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>COMMUNITY</span>
-            <h2 style={{ fontSize: '36px', marginTop: '10px', color: 'var(--theme-text)' }}>사람들의 Paradox 프로젝트</h2>
-            <p style={{ color: 'var(--theme-secondary-text)', marginTop: '15px', fontSize: '18px' }}>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
-            <button className="paradox-button" style={{ marginTop: '30px' }}>커뮤니티 입장하기</button>
-          </div>
-        </div>
-      </section>
+      {/* 통합 카드 섹션: 테마 대응 버전 */}
+<section className="main-grid-section">
+  <div className="main-card-grid">
+    
+    {/* 1. 커뮤니티 */}
+    <div className="community-card small" onClick={() => navigate('/community')}>
+      <div className="community-content">
+        <span className="tag accent-purple">COMMUNITY</span>
+        <h2>사람들의 Paradox 프로젝트</h2>
+        <p>직접 만든 C언어 프로그램을 공유하고 피드백을 받아보세요.</p>
+      </div>
+    </div>
 
-      {/* 서버 상태 카드 섹션 */}
-      <section className="community-section" style={{ paddingBottom: '100px' }}>
-        <div className="community-card" onClick={() => navigate('/server-status')} style={{ cursor: 'pointer', margin: '0 auto', maxWidth: '900px' }}>
-          <div className="community-content" style={{ padding: '60px', textAlign: 'center' }}>
-            <span className="tag" style={{ color: 'var(--tesla-blue)', fontWeight: 'bold' }}>SERVER STATUS</span>
-            <h2 style={{ fontSize: '36px', marginTop: '10px', color: 'var(--theme-text)' }}>Paradox 서버 상태</h2>
-            <p style={{ color: 'var(--theme-secondary-text)', marginTop: '15px', fontSize: '18px' }}>서버의 운영 상태와 성능을 실시간으로 확인하세요.</p>
-            <button className="paradox-button" style={{ marginTop: '30px' }}>서버 상태 보기</button>
-          </div>
-        </div>
-      </section>
+    {/* 2. 문제집 */}
+    <div className="community-card small" onClick={() => navigate('/workbook')}>
+      <div className="community-content">
+        <span className="tag accent-purple">WORKBOOK</span>
+        <h2>C언어 기초 문제집</h2>
+        <p>CodeUp 기초 100제를 기반으로 기초를 다지세요.</p>
+      </div>
+    </div>
+
+    {/* 3. 서버 상태 */}
+    <div className="community-card small" onClick={() => navigate('/server-status')}>
+      <div className="community-content">
+        <span className="tag accent-blue">SERVER STATUS</span>
+        <h2>Paradox 서버 상태</h2>
+        <p>서버의 운영 상태와 성능을 실시간으로 확인하세요.</p>
+      </div>
+    </div>
+
+    {/* 4. 랭킹 */}
+    <div className="community-card small" onClick={() => navigate('/ranking')}>
+      <div className="community-content">
+        <span className="tag accent-purple">RANKING</span>
+        <h2>실시간 랭킹 확인</h2>
+        <p>친구들과 점수를 비교하고 성취감을 느껴보세요.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
     </div>
   );
 };
