@@ -2625,6 +2625,104 @@ function App() {
   );
 }
 
+/* ==========================================
+   🏆 [추가] Supabase 실시간 검색 연동 랭킹 시스템
+   ========================================== */
+function Ranking() {
+  const [searchQuery, setSearchQuery] = useState(''); // 검색창 입력값 상태
+  const [rankingList, setRankingList] = useState([]); // DB에서 가져온 랭킹 목록
+  const [loading, setLoading] = useState(false);      // 로딩 애니메이션용 상태
+
+  // Supabase에서 실시간으로 랭킹 및 검색 데이터를 가져오는 함수
+  const fetchRankingData = async (searchWord = '') => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('profiles')
+        .select('username, score, tier')
+        .order('score', { ascending: false });
+
+      if (searchWord.trim() !== '') {
+        query = query.ilike('username', `%${searchWord}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const calculatedRank = data.map((user, index) => ({
+        rank: index + 1,
+        ...user
+      }));
+
+      setRankingList(calculatedRank);
+    } catch (error) {
+      console.error('랭킹 데이터를 가져오는데 실패했습니다:', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 검색어가 바뀔 때마다 Supabase DB에 실시간으로 다시 요청 보냄
+  useEffect(() => {
+    fetchRankingData(searchQuery);
+  }, [searchQuery]);
+
+  const handleMatchStart = (type) => {
+    alert(`${type} 매치를 준비 중입니다!`);
+  };
+
+  return (
+    <div className="ranking-container">
+      <h1 className="ranking-title">실시간 랭킹</h1>
+
+      {/* ⚔️ 매치 버튼 영역 */}
+      <div className="match-button-container">
+        <button className="match-btn active-match" onClick={() => handleMatchStart('일반')}>
+          일반 매치
+        </button>
+        <button className="match-btn private-match" onClick={() => handleMatchStart('비공개')}>
+          비공개 매치
+        </button>
+      </div>
+
+      {/* 🔍 사용자 검색창 */}
+      <div className="search-box-container">
+        <input
+          type="text"
+          className="user-search-input"
+          placeholder="검색할 유저의 닉네임을 입력하세요..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button className="clear-btn" onClick={() => setSearchQuery('')}>초기화</button>
+        )}
+      </div>
+
+      {/* 🏆 랭킹 결과창 */}
+      <div className="ranking-list">
+        {loading ? (
+          <div className="loading-box">유저 정보를 조회하는 중... 🚀</div>
+        ) : rankingList.length > 0 ? (
+          rankingList.map((user) => (
+            <div key={user.username} className="ranking-item">
+              <span className="user-rank">{user.rank}위</span>
+              <div className="user-info">
+                <span className="user-name">{user.username}</span>
+                <span className="user-tier">{user.tier || 'Unranked'}</span>
+              </div>
+              <span className="user-score">{user.score} 점</span>
+            </div>
+          ))
+        ) : (
+          <div className="no-result">
+            "<strong>{searchQuery}</strong>"에 해당하는 사용자가 없습니다. 😥
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 // 1. 파일 상단에 useState가 없다면 추가 확인 (이미 있다면 생략)
 // import { useState } from 'react';
 
