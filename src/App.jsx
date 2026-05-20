@@ -2041,10 +2041,11 @@ const Workbook = () => {
 
 const Ranking = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [rankings, setRankings] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); 
+  const [rankings, setRankings] = useState([]);       
+  const [loading, setLoading] = useState(false);      
 
+  // Supabase 'profiles' 테이블에서 데이터를 가져오는 함수
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
     try {
@@ -2073,13 +2074,61 @@ const Ranking = () => {
     }
   };
 
+  // 📈 [신규] 버튼을 누르면 DB 데이터를 실시간으로 수정하는 펑션
+  const handleUpdateScore = async (username, type) => {
+    // 현재 유저의 기존 데이터를 찾음
+    const targetUser = rankings.find(u => u.username === username);
+    if (!targetUser) return;
+
+    let updateData = {};
+
+    if (type === 'rating') {
+      // 레이팅 버튼: 점수 +100, 레이팅 +100 증가
+      const currentRating = parseInt(targetUser.rating) || 0;
+      const currentScore = parseInt(targetUser.score) || 0;
+      updateData = { 
+        rating: String(currentRating + 100), 
+        score: currentScore + 100 
+      };
+    } else if (type === 'solved') {
+      // 문제 버튼: 맞춘 문제 수 +1, 점수 +50 증가
+      const currentSolved = parseInt(targetUser.solved) || 0;
+      const currentScore = parseInt(targetUser.score) || 0;
+      updateData = { 
+        solved: currentSolved + 1, 
+        score: currentScore + 50 
+      };
+    } else if (type === 'streak') {
+      // 연속 학습 버튼: 스트릭 일수 +1 증가
+      const currentStreak = parseInt(targetUser.streak) || 0;
+      updateData = { 
+        streak: currentStreak + 1 
+      };
+    }
+
+    try {
+      // Supabase DB에 업데이트 요청
+      const { error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('username', username);
+
+      if (error) throw error;
+      
+      // 업데이트 성공 시 화면 새로고침
+      fetchRankingData(searchQuery);
+    } catch (error) {
+      console.error('데이터 업데이트 실패:', error.message);
+    }
+  };
+
   useEffect(() => {
     fetchRankingData(searchQuery);
   }, [searchQuery]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1050px', margin: '0 auto' }}> {/* 버튼 수용을 위해 maxWidth를 살짝 늘렸습니다 */}
         <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
           Ranking
         </h1>
@@ -2087,6 +2136,7 @@ const Ranking = () => {
           다른 사용자들과 점수를 비교하고 순위를 확인하세요!
         </p>
 
+        {/* 배틀 버튼 영역 */}
         <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
           <button style={{
             flex: 1, padding: '15px 25px', borderRadius: '12px',
@@ -2108,6 +2158,7 @@ const Ranking = () => {
           </button>
         </div>
 
+        {/* 🔍 실시간 검색창 */}
         <div style={{ position: 'relative', maxWidth: '100%', marginBottom: '30px' }}>
           <input
             type="text"
@@ -2127,14 +2178,16 @@ const Ranking = () => {
           )}
         </div>
 
+        {/* 🏆 랭킹 보드 테이블 (맨 우측에 120px 버튼 열 추가) */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px 130px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
             <div>Rank</div>
             <div>User</div>
             <div style={{ textAlign: 'center' }}>Score</div>
             <div style={{ textAlign: 'center' }}>Solved</div>
             <div style={{ textAlign: 'center' }}>Rating</div>
             <div style={{ textAlign: 'center' }}>Streak</div>
+            <div style={{ textAlign: 'center' }}>Manage</div> {/* 버튼 열 제목 */}
           </div>
 
           {loading ? (
@@ -2150,7 +2203,7 @@ const Ranking = () => {
               <div
                 key={user.username}
                 style={{
-                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px',
+                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px 130px', padding: '16px 20px',
                   borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none',
                   alignItems: 'center', transition: 'background 0.2s', cursor: 'pointer',
                 }}
@@ -2166,7 +2219,7 @@ const Ranking = () => {
                     <span style={{ color: 'var(--theme-secondary-text)' }}>{user.rank}</span>
                   )}
                 </div>
-                <div style={{ fontWeight: '500' }}>{user.username}</div>
+                <div style={{ fontWeight: '500' }}>{user.username || '이름 없음'}</div>
                 <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
                 <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>{user.solved || 0}</div>
                 <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
@@ -2175,6 +2228,29 @@ const Ranking = () => {
                     🔥 {user.streak || 0}
                   </span>
                 </div>
+                
+                {/* 🎛️ [신규 추가] 표 우측 세로 정렬 테스트 버튼 3개 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', paddingLeft: '10px' }}>
+                  <button 
+                    onClick={() => handleUpdateScore(user.username, 'rating')}
+                    style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', border: '1px solid #f39c12', borderRadius: '6px', backgroundColor: 'transparent', color: '#f39c12', cursor: 'pointer' }}
+                  >
+                    레이팅
+                  </button>
+                  <button 
+                    onClick={() => handleUpdateScore(user.username, 'solved')}
+                    style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', border: '1px solid #cb6ce6', borderRadius: '6px', backgroundColor: 'transparent', color: '#cb6ce6', cursor: 'pointer' }}
+                  >
+                    문제
+                  </button>
+                  <button 
+                    onClick={() => handleUpdateScore(user.username, 'streak')}
+                    style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', border: '1px solid #2ecc71', borderRadius: '6px', backgroundColor: 'transparent', color: '#2ecc71', cursor: 'pointer' }}
+                  >
+                    연속 학습
+                  </button>
+                </div>
+
               </div>
             ))
           )}
