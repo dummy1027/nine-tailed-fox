@@ -2736,7 +2736,7 @@ function App() {
   };
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/test')
+    fetch('https://nine-tailed-fox.onrender.com/api/test')
       .then(res => res.json())
       .then(data => setMessage(data.result))
       .catch(err => setMessage(""));
