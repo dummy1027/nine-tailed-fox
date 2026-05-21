@@ -38,20 +38,63 @@ const CPreview = () => {
     }
   };
 
+  const validateCSyntax = (code) => {
+    const errors = [];
+    const lines = code.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const lineNum = i + 1;
+      
+      if (line === '') continue;
+      if (line.startsWith('//') || line.startsWith('/*')) continue;
+      if (line.startsWith('#include') || line.startsWith('#define')) continue;
+      if (line.endsWith('{') || line.endsWith('}')) continue;
+      if (line.endsWith(';')) continue;
+      if (line.startsWith('if') || line.startsWith('for') || line.startsWith('while') || line.startsWith('else')) continue;
+      if (line.startsWith('return') || line.startsWith('break') || line.startsWith('continue')) continue;
+      
+      if (/^\w+/.test(line) && !line.endsWith(';') && !line.endsWith('{')) {
+        errors.push({ line: lineNum, code: 'E2001', message: `세미콜론이 없습니다. (${lineNum}번째 줄)` });
+      }
+    }
+    
+    return errors;
+  };
+
   const handleRun = () => {
     setResultType('run');
-    const printfMatch = code.match(/printf\s*\(\s*"([^"]*)"\s*\)/);
+    
+    const syntaxErrors = validateCSyntax(code);
+    if (syntaxErrors.length > 0) {
+      setOutput(`[${syntaxErrors[0].code}] ${syntaxErrors[0].message}`);
+      setIsCorrect(false);
+      return;
+    }
+    
+    const printfMatch = code.match(/printf\s*\(\s*"((?:[^"\\]|\\.)*)"\s*\)/);
     if (printfMatch) {
-      setOutput(printfMatch[1]);
+      let text = printfMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      setOutput(text);
+      setIsCorrect(null);
     } else {
-      setOutput('출력 오류: printf 문을 찾을 수 없습니다.');
+      setOutput('[E1002] 출력 오류: printf 문을 찾을 수 없습니다.');
+      setIsCorrect(false);
     }
   };
 
   const handleCheck = () => {
     setResultType('check');
-    const printfMatch = code.match(/printf\s*\(\s*"([^"]*)"\s*\)/);
-    const userOutput = printfMatch ? printfMatch[1] : '';
+    
+    const syntaxErrors = validateCSyntax(code);
+    if (syntaxErrors.length > 0) {
+      setOutput(`[${syntaxErrors[0].code}] ${syntaxErrors[0].message}`);
+      setIsCorrect(false);
+      return;
+    }
+    
+    const printfMatch = code.match(/printf\s*\(\s*"((?:[^"\\]|\\.)*)"\s*\)/);
+    const userOutput = printfMatch ? printfMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : '';
     setIsCorrect(userOutput === problem.expected);
     setOutput('');
   };
@@ -444,7 +487,7 @@ const CPreview = () => {
           {resultType === 'run' && output && (
             <div style={{ backgroundColor: '#1c1c1e', borderRadius: '10px', padding: '15px', marginTop: '15px', border: '1px solid #3a3a3c' }}>
               <p style={{ color: '#8e8e93', fontWeight: 'bold', marginBottom: '10px' }}>출력 결과</p>
-              <p style={{ color: '#4ade80', fontFamily: 'monospace', fontSize: '14px' }}>{output}</p>
+              <p style={{ color: output.startsWith('[E') ? '#f87171' : '#4ade80', fontFamily: 'monospace', fontSize: '14px' }}>{output}</p>
             </div>
           )}
 

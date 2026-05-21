@@ -1468,24 +1468,66 @@ const Workbook = () => {
     });
   };
 
+  const validateCSyntax = (code) => {
+    const errors = [];
+    const lines = code.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const lineNum = i + 1;
+      
+      if (line === '') continue;
+      if (line.startsWith('//') || line.startsWith('/*')) continue;
+      if (line.startsWith('#include') || line.startsWith('#define')) continue;
+      if (line.endsWith('{') || line.endsWith('}')) continue;
+      if (line.endsWith(';')) continue;
+      if (line.startsWith('if') || line.startsWith('for') || line.startsWith('while') || line.startsWith('else')) continue;
+      if (line.startsWith('return') || line.startsWith('break') || line.startsWith('continue')) continue;
+      
+      if (/^\w+/.test(line) && !line.endsWith(';') && !line.endsWith('{')) {
+        errors.push({ line: lineNum, code: 'E2001', message: `세미콜론이 없습니다. (${lineNum}번째 줄)` });
+      }
+    }
+    
+    return errors;
+  };
+
   const getSimulatedOutput = (code, input) => {
-    const printfMatches = code.match(/printf\s*\(\s*"([^"]*)"(?:,\s*[^)]+)?\s*\)/g);
+    const syntaxErrors = validateCSyntax(code);
+    if (syntaxErrors.length > 0) {
+      return { error: syntaxErrors[0] };
+    }
+
+    const printfMatches = code.match(/printf\s*\(\s*"((?:[^"\\]|\\.)*)"(?:,\s*[^)]+)?\s*\)/g);
     if (!printfMatches) return "";
 
     let finalOutput = "";
     const inputParts = input ? input.trim().split(/\s+/) : [];
-    let inputIndex = 0;
+    
+    const scanfMatch = code.match(/scanf\s*\(\s*"[^"]*"\s*,\s*([^)]+)\s*\)/);
+    const varOrder = scanfMatch ? scanfMatch[1].split(',').map(v => v.trim().replace(/&/g, '')) : [];
+    
+    const printfArgsMatch = code.match(/printf\s*\(\s*"[^"]*"\s*,\s*([^)]+)\s*\)/);
+    const printfArgNames = printfArgsMatch ? printfArgsMatch[1].split(',').map(v => v.trim()) : [];
+    
+    const varMap = {};
+    varOrder.forEach((name, idx) => {
+      varMap[name] = inputParts[idx] || '';
+    });
 
     printfMatches.forEach(m => {
-      const match = m.match(/printf\s*\(\s*"([^"]*)"/);
+      const match = m.match(/printf\s*\(\s*"((?:[^"\\]|\\.)*)"/);
       if (match) {
         let text = match[1];
-        // %d, %s, %f 등 서식 지정자 치환 (순서대로 입력값 매칭)
-        text = text.replace(/%d|%s|%f|%lf|%c/g, () => {
-          return inputParts[inputIndex++] || "";
+        let argIdx = 0;
+        text = text.replace(/%d|%s|%f|%lf|%c/g, (matchStr) => {
+          const argName = printfArgNames[argIdx++];
+          if (argName && varMap[argName] !== undefined) {
+            return varMap[argName];
+          }
+          return inputParts[argIdx - 1] || "";
         });
-        // 이스케이프 문자 처리
-        text = text.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+        text = text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
         finalOutput += text;
       }
     });
@@ -1497,12 +1539,17 @@ const Workbook = () => {
     setResultType('run');
 
     const finalInput = testInput || selectedProblem.input || "";
-    const simulatedOutput = getSimulatedOutput(userCode, finalInput);
+    const result = getSimulatedOutput(userCode, finalInput);
     
-    if (simulatedOutput || userCode.includes('printf')) {
-      setOutput(simulatedOutput);
+    if (result && result.error) {
+      setOutput(`[${result.error.code}] ${result.error.message}`);
+      setIsCorrect(false);
+    } else if (result || userCode.includes('printf')) {
+      setOutput(result);
+      setIsCorrect(null);
     } else {
-      setOutput('출력 오류: printf 문을 찾을 수 없거나 출력할 내용이 없습니다.');
+      setOutput('[E1002] 출력 오류: printf 문을 찾을 수 없거나 출력할 내용이 없습니다.');
+      setIsCorrect(false);
     }
   };
 
@@ -1510,10 +1557,17 @@ const Workbook = () => {
     if (!userCode.trim()) return;
     setResultType('check');
 
-    const simulatedOutput = getSimulatedOutput(userCode, selectedProblem.input);
-    const expectedOutput = selectedProblem.output.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+    const result = getSimulatedOutput(userCode, selectedProblem.input);
+    
+    if (result && result.error) {
+      setOutput(`[${result.error.code}] ${result.error.message}`);
+      setIsCorrect(false);
+      return;
+    }
 
-    // 공백 및 줄바꿈 차이로 인한 오답 방지를 위해 trim() 적용 후 비교
+    const simulatedOutput = result;
+    const expectedOutput = selectedProblem.output.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+
     const isMatched = simulatedOutput.trim() === expectedOutput.trim();
 
     setIsCorrect(isMatched);
@@ -1997,7 +2051,7 @@ const Workbook = () => {
                 {resultType === 'run' && output && (
                   <div style={{ backgroundColor: 'var(--theme-bg)', borderRadius: '10px', padding: '15px', marginTop: '15px', border: '1px solid var(--theme-border)' }}>
                     <p style={{ color: '#8e8e93', fontWeight: 'bold', marginBottom: '10px', fontSize: '14px' }}>출력 결과</p>
-                    <pre style={{ color: '#4ade80', fontFamily: 'Consolas, Monaco, monospace', fontSize: '14px', margin: 0, whiteSpace: 'pre-wrap' }}>{output}</pre>
+                    <pre style={{ color: output.startsWith('[E') ? '#f87171' : '#4ade80', fontFamily: 'Consolas, Monaco, monospace', fontSize: '14px', margin: 0, whiteSpace: 'pre-wrap' }}>{output}</pre>
                   </div>
                 )}
 
