@@ -2110,6 +2110,7 @@ const Ranking = () => {
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // 점수에 따른 티어 칭호 부여 함수 (기존 로직 그대로 유지)
   const getRank = (score) => {
     if (score < 100) return 'beginner';
     if (score < 300) return 'veteran';
@@ -2245,21 +2246,26 @@ const Ranking = () => {
     return () => clearInterval(interval);
   }, [queueStatus, user, profile]);
 
+  // 실시간 Supabase 랭킹 데이터 연동 함수
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
     try {
+      // 1. 여기서 기본 쿼리를 세팅합니다 (solved 확인 완료!)
       let query = supabase
         .from('profiles')
         .select('username, score, solved, rating, streak')
         .order('score', { ascending: false });
 
+      // 2. 검색어가 있으면 검색 조건을 쿼리에 추가합니다
       if (searchWord.trim() !== '') {
         query = query.ilike('username', `%${searchWord}%`);
       }
 
+      // 3. 최종적으로 완성된 쿼리를 여기서 실행(await)합니다!
       const { data, error } = await query;
       if (error) throw error;
 
+      // 4. 등수 및 티어 계산
       const calculatedRank = data.map((user, index) => ({
         rank: index + 1,
         rankTitle: getRank(user.score || 0),
@@ -2274,6 +2280,7 @@ const Ranking = () => {
     }
   };
 
+  // 검색창에 유저가 이름을 타이핑할 때마다 실시간으로 리스트 갱신하기
   useEffect(() => {
     fetchRankingData(searchQuery);
   }, [searchQuery]);
@@ -2320,6 +2327,7 @@ const Ranking = () => {
             textAlign: 'center',
             marginBottom: '30px'
           }}>
+            {/* 상단 배틀 메뉴 버튼 영역 */}
             <div style={{ fontSize: '40px', marginBottom: '15px' }}>🔍</div>
             <h3 style={{ fontSize: '1.3rem', marginBottom: '10px' }}>상대 찾기 중...</h3>
             <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '20px' }}>잠시만 기다려주세요. 가장 가까운 상대를 찾고 있습니다.</p>
@@ -2344,6 +2352,7 @@ const Ranking = () => {
             </button>
           </div>
         )}
+        
 
         {queueStatus === 'matched' && matchInfo?.opponent && (
           <div style={{
@@ -2406,35 +2415,20 @@ const Ranking = () => {
           </div>
         )}
 
+        {/* 티어 기준 가이드 맵핑 영역 */}
         <div style={{
-          display: 'flex',
-          gap: '12px',
-          marginBottom: '30px',
-          padding: '14px 20px',
-          backgroundColor: 'var(--theme-surface)',
-          borderRadius: '12px',
-          border: '1px solid var(--theme-border)',
-          justifyContent: 'center',
-          flexWrap: 'wrap'
+          display: 'flex', gap: '12px', marginBottom: '30px', padding: '14px 20px',
+          backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)',
+          justify: 'center', flexWrap: 'wrap'
         }}>
           {RANK_ORDER.map((rank, i) => (
             <div key={rank} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 12px',
-              backgroundColor: `${RANK_COLORS[rank]}15`,
-              borderRadius: '8px',
-              border: `1px solid ${RANK_COLORS[rank]}40`
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px',
+              backgroundColor: `${RANK_COLORS[rank]}15`, borderRadius: '8px', border: `1px solid ${RANK_COLORS[rank]}40`
             }}>
               <span style={{
-                padding: '2px 8px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: '700',
-                backgroundColor: RANK_COLORS[rank],
-                color: 'white',
-                textTransform: 'uppercase'
+                padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700',
+                backgroundColor: RANK_COLORS[rank], color: 'white', textTransform: 'uppercase'
               }}>
                 {rank}
               </span>
@@ -2445,6 +2439,7 @@ const Ranking = () => {
           ))}
         </div>
 
+        {/* 닉네임 실시간 검색창 */}
         <div style={{ position: 'relative', maxWidth: '100%', marginBottom: '30px' }}>
           <input
             type="text"
@@ -2464,6 +2459,7 @@ const Ranking = () => {
           )}
         </div>
 
+        {/* 실시간 랭킹 보드 판넬 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
             <div>Rank</div>
@@ -2476,7 +2472,7 @@ const Ranking = () => {
 
           {loading ? (
             <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
-              유저 정보를 조회하는 중... 🚀
+              유저 정보를 실시간 조회하는 중... 🚀
             </div>
           ) : rankings.length === 0 ? (
             <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
@@ -2485,7 +2481,7 @@ const Ranking = () => {
           ) : (
             rankings.map((user, index) => (
               <div
-                key={user.username}
+                key={user.username || index}
                 style={{
                   display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px',
                   borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none',
@@ -2494,6 +2490,7 @@ const Ranking = () => {
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
+                {/* 순위 마크 연출 */}
                 <div style={{ fontWeight: '700' }}>
                   {user.rank <= 3 ? (
                     <span style={{ color: user.rank === 1 ? '#ffd700' : user.rank === 2 ? '#c0c0c0' : '#cd7f32' }}>
@@ -2503,24 +2500,29 @@ const Ranking = () => {
                     <span style={{ color: 'var(--theme-secondary-text)' }}>{user.rank}</span>
                   )}
                 </div>
+
+                {/* 유저 닉네임 + 티어 뱃지 */}
                 <div style={{ fontWeight: '500' }}>
-                  {user.username}
+                  {user.username || '익명 랭커'}
                   <span style={{
-                    marginLeft: '8px',
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    backgroundColor: `${RANK_COLORS[user.rankTitle]}20`,
-                    color: RANK_COLORS[user.rankTitle],
+                    marginLeft: '8px', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600',
+                    backgroundColor: `${RANK_COLORS[user.rankTitle]}20`, color: RANK_COLORS[user.rankTitle],
                     textTransform: 'uppercase'
                   }}>
                     {user.rankTitle}
                   </span>
                 </div>
-                <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
-                <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>{user.solved || 0}</div>
-                <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
+
+                {/* 진짜 데이터 수치 연동단 (Score / Solved / Rating / Streak) */}
+                <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>
+                  {(user.score || 0).toLocaleString()} XP
+                </div>
+                <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>
+                  {user.solved || 0}개
+                </div>
+                <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>
+                  {user.rating || '-'}
+                </div>
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
                     🔥 {user.streak || 0}
