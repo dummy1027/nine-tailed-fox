@@ -2093,11 +2093,28 @@ const Workbook = () => {
   );
 };
 
+const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
+const RANK_COLORS = {
+  beginner: '#95a5a6',
+  veteran: '#3498db',
+  expert: '#9b59b6',
+  master: '#f39c12',
+  grandmaster: '#e74c3c'
+};
+
 const Ranking = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const getRank = (score) => {
+    if (score < 100) return 'beginner';
+    if (score < 300) return 'veteran';
+    if (score < 600) return 'expert';
+    if (score < 1000) return 'master';
+    return 'grandmaster';
+  };
 
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
@@ -2116,6 +2133,7 @@ const Ranking = () => {
 
       const calculatedRank = data.map((user, index) => ({
         rank: index + 1,
+        rankTitle: getRank(user.score || 0),
         ...user
       }));
 
@@ -2160,6 +2178,45 @@ const Ranking = () => {
           }} onClick={() => navigate('/private-battle')}>
             🔒 비공개 배틀
           </button>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          marginBottom: '30px',
+          padding: '14px 20px',
+          backgroundColor: 'var(--theme-surface)',
+          borderRadius: '12px',
+          border: '1px solid var(--theme-border)',
+          justifyContent: 'center',
+          flexWrap: 'wrap'
+        }}>
+          {RANK_ORDER.map((rank, i) => (
+            <div key={rank} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 12px',
+              backgroundColor: `${RANK_COLORS[rank]}15`,
+              borderRadius: '8px',
+              border: `1px solid ${RANK_COLORS[rank]}40`
+            }}>
+              <span style={{
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '700',
+                backgroundColor: RANK_COLORS[rank],
+                color: 'white',
+                textTransform: 'uppercase'
+              }}>
+                {rank}
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>
+                {i === 0 ? '0' : i === 1 ? '100' : i === 2 ? '300' : i === 3 ? '600' : '1000'}+
+              </span>
+            </div>
+          ))}
         </div>
 
         <div style={{ position: 'relative', maxWidth: '100%', marginBottom: '30px' }}>
@@ -2220,7 +2277,21 @@ const Ranking = () => {
                     <span style={{ color: 'var(--theme-secondary-text)' }}>{user.rank}</span>
                   )}
                 </div>
-                <div style={{ fontWeight: '500' }}>{user.username}</div>
+                <div style={{ fontWeight: '500' }}>
+                  {user.username}
+                  <span style={{
+                    marginLeft: '8px',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    backgroundColor: `${RANK_COLORS[user.rankTitle]}20`,
+                    color: RANK_COLORS[user.rankTitle],
+                    textTransform: 'uppercase'
+                  }}>
+                    {user.rankTitle}
+                  </span>
+                </div>
                 <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
                 <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>{user.solved || 0}</div>
                 <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
