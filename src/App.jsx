@@ -5,6 +5,7 @@ import CPreview from './CPreview';
 import Community from './Community';
 import Profile from './Profile';
 import ProfileSettings from './ProfileSettings';
+import BattleArena from './BattleArena';
 import logo from './assets/logo.png';
 import { AuthProvider, useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
@@ -2103,6 +2104,7 @@ const RANK_COLORS = {
 };
 
 const Ranking = () => {
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [rankings, setRankings] = useState([]);
@@ -2115,6 +2117,133 @@ const Ranking = () => {
     if (score < 1000) return 'master';
     return 'grandmaster';
   };
+
+  const [queueStatus, setQueueStatus] = useState('idle'); // 'idle' | 'waiting' | 'matched'
+  const [matchInfo, setMatchInfo] = useState(null);
+  const [battleError, setBattleError] = useState('');
+
+  const findBestMatch = (waitingUsers, myScore, myRank) => {
+    const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
+    const myRankIndex = RANK_ORDER.indexOf(myRank);
+
+    let bestMatch = null;
+    let bestScore = Infinity;
+
+    for (const user of waitingUsers) {
+      if (user.user_id === user?.id) continue;
+      const rankIndex = RANK_ORDER.indexOf(user.rank_title);
+      const rankDiff = Math.abs(rankIndex - myRankIndex);
+      const scoreDiff = Math.abs(user.score - myScore);
+
+      let matchScore = rankDiff * 500 + scoreDiff;
+
+      if (rankDiff === 0) matchScore *= 0.5;
+      if (rankDiff <= 1) matchScore *= 0.8;
+
+      if (matchScore < bestScore) {
+        bestScore = matchScore;
+        bestMatch = user;
+      }
+    }
+
+    return bestMatch;
+  };
+
+  const joinRandomBattle = async () => {
+    if (!user) {
+      setBattleError('로그인 후 이용해주세요.');
+      return;
+    }
+    setBattleError('');
+    setQueueStatus('waiting');
+
+    try {
+      const existing = await supabase
+        .from('battle_queue')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'waiting')
+        .maybeSingle();
+
+      if (existing) {
+        setMatchInfo({ opponent: null, isCreator: true });
+        setQueueStatus('waiting');
+        return;
+      }
+
+      const myScore = profile?.score || 0;
+      const myRank = getRank(myScore);
+
+      const { data: queueData, error: queueError } = await supabase
+        .from('battle_queue')
+        .insert({
+          user_id: user.id,
+          username: user.username || user.email?.split('@')[0] || 'Anonymous',
+          score: myScore,
+          rating: profile?.rating || 0,
+          streak: profile?.streak || 0,
+          rank_title: myRank
+        })
+        .select()
+        .single();
+
+      if (queueError) throw queueError;
+
+      const { data: allWaiting } = await supabase
+        .from('battle_queue')
+        .select('*')
+        .eq('status', 'waiting')
+        .neq('user_id', user.id)
+        .order('joined_at', { ascending: true });
+
+      if (allWaiting && allWaiting.length > 0) {
+        const bestMatch = findBestMatch(allWaiting, myScore, myRank);
+        if (bestMatch) {
+          await supabase.from('battle_queue').update({ status: 'matched' }).in('id', [queueData.id, bestMatch.id]);
+          setMatchInfo({ opponent: bestMatch, isCreator: true });
+          setQueueStatus('matched');
+          return;
+        }
+      }
+
+      setMatchInfo({ queueId: queueData.id, isCreator: true });
+      setQueueStatus('waiting');
+    } catch (err) {
+      console.error('Battle queue error:', err);
+      setBattleError('배틀 참여에 실패했습니다.');
+      setQueueStatus('idle');
+    }
+  };
+
+  useEffect(() => {
+    if (queueStatus !== 'waiting') return;
+    const interval = setInterval(async () => {
+      try {
+        const myScore = profile?.score || 0;
+        const myRank = getRank(myScore);
+
+        const { data: allWaiting } = await supabase
+          .from('battle_queue')
+          .select('*')
+          .eq('status', 'waiting')
+          .neq('user_id', user?.id)
+          .order('joined_at', { ascending: true });
+
+        if (allWaiting && allWaiting.length > 0) {
+          const bestMatch = findBestMatch(allWaiting, myScore, myRank);
+          const myQueue = await supabase.from('battle_queue').select('id').eq('user_id', user.id).eq('status', 'waiting').maybeSingle();
+          if (myQueue && bestMatch) {
+            await supabase.from('battle_queue').update({ status: 'matched' }).in('id', [myQueue.id, bestMatch.id]);
+            setMatchInfo({ opponent: bestMatch, isCreator: false });
+            setQueueStatus('matched');
+          }
+        }
+      } catch (err) {
+        console.error('Match check error:', err);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [queueStatus, user, profile]);
 
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
@@ -2159,26 +2288,123 @@ const Ranking = () => {
           다른 사용자들과 점수를 비교하고 순위를 확인하세요!
         </p>
 
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
-          <button style={{
-            flex: 1, padding: '15px 25px', borderRadius: '12px',
-            background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
-            border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
+        {queueStatus === 'idle' && (
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
+            <button style={{
+              flex: 1, padding: '15px 25px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
+              border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
+            }} onClick={joinRandomBattle}>
+              🎲 무작위 배틀
+            </button>
+            <button style={{
+              flex: 1, padding: '15px 25px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
+              border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
+            }} onClick={() => navigate('/private-battle')}>
+              🔒 비공개 배틀
+            </button>
+          </div>
+        )}
+
+        {queueStatus === 'waiting' && (
+          <div style={{
+            padding: '30px',
+            backgroundColor: 'var(--theme-surface)',
+            borderRadius: '16px',
+            border: '1px solid var(--theme-border)',
+            textAlign: 'center',
+            marginBottom: '30px'
           }}>
-            🎲 무작위 배틀
-          </button>
-          <button style={{
-            flex: 1, padding: '15px 25px', borderRadius: '12px',
-            background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
-            border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
-          }} onClick={() => navigate('/private-battle')}>
-            🔒 비공개 배틀
-          </button>
-        </div>
+            <div style={{ fontSize: '40px', marginBottom: '15px' }}>🔍</div>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '10px' }}>상대 찾기 중...</h3>
+            <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '20px' }}>잠시만 기다려주세요. 가장 가까운 상대를 찾고 있습니다.</p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <div style={{
+                width: '12px', height: '12px', borderRadius: '50%',
+                backgroundColor: queueStatus === 'waiting' ? '#f39c12' : 'transparent',
+                animation: 'pulse 1.5s infinite'
+              }} />
+            </div>
+            <button
+              onClick={async () => {
+                await supabase.from('battle_queue').update({ status: 'cancelled' }).eq('user_id', user.id).eq('status', 'waiting');
+                setQueueStatus('idle');
+              }}
+              style={{
+                marginTop: '20px', padding: '10px 25px', borderRadius: '10px',
+                backgroundColor: '#ff4b4b', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer'
+              }}
+            >
+              취소
+            </button>
+          </div>
+        )}
+
+        {queueStatus === 'matched' && matchInfo?.opponent && (
+          <div style={{
+            padding: '30px',
+            backgroundColor: 'var(--theme-surface)',
+            borderRadius: '16px',
+            border: '2px solid #2ecc71',
+            textAlign: 'center',
+            marginBottom: '30px'
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '15px' }}>⚔️</div>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '10px' }}>상대 찾기 완료!</h3>
+            <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '20px' }}>
+              상대: <strong>{matchInfo.opponent.username}</strong> ({RANK_COLORS[matchInfo.opponent.rank_title] ? matchInfo.opponent.rank_title : 'beginner'})
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--theme-secondary-text)' }}>
+              점수: {matchInfo.opponent.score} | 레이팅: {matchInfo.opponent.rating} | 스트릭: {matchInfo.opponent.streak}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px' }}>
+              <button
+                onClick={() => {
+                  setQueueStatus('idle');
+                  setMatchInfo(null);
+                  navigate('/battle-arena');
+                }}
+                style={{
+                  padding: '12px 30px', borderRadius: '10px',
+                  backgroundColor: '#2ecc71', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                ⚔️ 배틀 시작!
+              </button>
+              <button
+                onClick={() => {
+                  setQueueStatus('idle');
+                  setMatchInfo(null);
+                }}
+                style={{
+                  padding: '12px 25px', borderRadius: '10px',
+                  backgroundColor: '#95a5a6', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                나중에
+              </button>
+            </div>
+          </div>
+        )}
+
+        {battleError && (
+          <div style={{
+            padding: '12px 20px',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+            border: '1px solid #e74c3c',
+            borderRadius: '10px',
+            color: '#e74c3c',
+            marginBottom: '20px',
+            textAlign: 'center'
+          }}>
+            {battleError}
+          </div>
+        )}
 
         <div style={{
           display: 'flex',
@@ -2775,6 +3001,7 @@ function App() {
           <Route path="/c-preview" element={<CPreview />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<ProfileSettings />} />
+          <Route path="/battle-arena" element={<BattleArena />} />
         </Routes>
 
         <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
