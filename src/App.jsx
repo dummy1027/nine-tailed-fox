@@ -85,8 +85,8 @@ const Home = ({ message }) => {
     <div className="community-card small" onClick={() => navigate('/workbook')}>
       <div className="community-content">
         <span className="tag accent-purple">WORKBOOK</span>
-        <h2>C언어 기초 문제집</h2>
-        <p>CodeUp 기초 100제를 기반으로 기초를 다지세요.</p>
+        <h2>C언어 문제집</h2>
+        <p>문제를 풀면서 C언어 실력을 향상시키세요.</p>
       </div>
     </div>
 
@@ -2095,7 +2095,41 @@ const Workbook = () => {
 
 const Ranking = () => {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
   const [rankings, setRankings] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchRankingData = async (searchWord = '') => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('profiles')
+        .select('username, score, solved, rating, streak')
+        .order('score', { ascending: false });
+
+      if (searchWord.trim() !== '') {
+        query = query.ilike('username', `%${searchWord}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const calculatedRank = data.map((user, index) => ({
+        rank: index + 1,
+        ...user
+      }));
+
+      setRankings(calculatedRank);
+    } catch (error) {
+      console.error('Ranking data load failed:', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRankingData(searchQuery);
+  }, [searchQuery]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
@@ -2109,43 +2143,42 @@ const Ranking = () => {
 
         <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
           <button style={{
-            flex: 1,
-            padding: '15px 25px',
-            borderRadius: '12px',
+            flex: 1, padding: '15px 25px', borderRadius: '12px',
             background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
-            border: 'none',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            transition: 'all 0.2s',
-            boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
+            border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+            transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
           }}>
             🎲 무작위 배틀
           </button>
           <button style={{
-            flex: 1,
-            padding: '15px 25px',
-            borderRadius: '12px',
+            flex: 1, padding: '15px 25px', borderRadius: '12px',
             background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
-            border: 'none',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            transition: 'all 0.2s',
-            boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
+            border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+            transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
           }} onClick={() => navigate('/private-battle')}>
             🔒 비공개 배틀
           </button>
+        </div>
+
+        <div style={{ position: 'relative', maxWidth: '100%', marginBottom: '30px' }}>
+          <input
+            type="text"
+            placeholder="검색할 사용자의 닉네임을 입력하세요..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%', padding: '14px 20px', fontSize: '15px', borderRadius: '12px',
+              backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)',
+              color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s'
+            }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--theme-secondary-text)', cursor: 'pointer', fontSize: '14px' }}>
+              초기화
+            </button>
+          )}
         </div>
 
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
@@ -2158,22 +2191,22 @@ const Ranking = () => {
             <div style={{ textAlign: 'center' }}>Streak</div>
           </div>
 
-          {rankings.length === 0 ? (
+          {loading ? (
             <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
-              아직 해결한 사람들이 없어요 ˃ ˄ ˂
+              유저 정보를 조회하는 중... 🚀
+            </div>
+          ) : rankings.length === 0 ? (
+            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
+              {searchQuery ? `"${searchQuery}" 유저를 찾을 수 없습니다 ˃ ˄ ˂` : "아직 해결한 사람들이 없어요 ˃ ˄ ˂"}
             </div>
           ) : (
             rankings.map((user, index) => (
               <div
-                key={user.rank}
+                key={user.username}
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: '80px 1fr 120px 100px 100px 100px',
-                  padding: '16px 20px',
+                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px',
                   borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none',
-                  alignItems: 'center',
-                  transition: 'background 0.2s',
-                  cursor: 'pointer',
+                  alignItems: 'center', transition: 'background 0.2s', cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -2188,12 +2221,12 @@ const Ranking = () => {
                   )}
                 </div>
                 <div style={{ fontWeight: '500' }}>{user.username}</div>
-                <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{user.score.toLocaleString()}</div>
-                <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>{user.solved}</div>
+                <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
+                <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>{user.solved || 0}</div>
                 <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
-                    🔥 {user.streak}
+                    🔥 {user.streak || 0}
                   </span>
                 </div>
               </div>
