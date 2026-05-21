@@ -2121,22 +2121,22 @@ const Ranking = () => {
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
     try {
-      // 1. profiles 테이블에서 필요한 진짜 컬럼들 긁어오기
-      // ⚠️ 만약 DB의 문제 푼 수 컬럼명이 'solved_count'라면 아래 'solved'를 'solved_count'로 수정해주세요!
+      // 1. 여기서 기본 쿼리를 세팅합니다 (solved 확인 완료!)
       let query = supabase
         .from('profiles')
         .select('username, score, solved, rating, streak')
-        .order('score', { ascending: false }); // 점수 높은 순 정렬
+        .order('score', { ascending: false });
 
-      // 검색어가 있으면 해당 유저만 필터링 (초성/부분 검색 지원)
+      // 2. 검색어가 있으면 검색 조건을 쿼리에 추가합니다
       if (searchWord.trim() !== '') {
         query = query.ilike('username', `%${searchWord}%`);
       }
 
+      // 3. 최종적으로 완성된 쿼리를 여기서 실행(await)합니다!
       const { data, error } = await query;
       if (error) throw error;
 
-      // 2. 가져온 진짜 데이터를 바탕으로 등수(rank)와 티어 명칭 맵핑하기
+      // 4. 등수 및 티어 계산
       const calculatedRank = data.map((user, index) => ({
         rank: index + 1,
         rankTitle: getRank(user.score || 0),
@@ -2145,7 +2145,7 @@ const Ranking = () => {
 
       setRankings(calculatedRank);
     } catch (error) {
-      console.error('랭킹 데이터를 불러오는 중 에러 발생:', error.message);
+      console.error('Ranking data load failed:', error.message);
     } finally {
       setLoading(false);
     }
