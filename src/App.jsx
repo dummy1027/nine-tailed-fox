@@ -1473,41 +1473,10 @@ const ServerStatus = () => {
     api: { name: 'API', status: 'online', latency: 42, cpu: '0.85', memory: { used: 512, total: 8192, percent: '6.25' }, uptime: 86400 * 5 },
     mediaProxy: { name: 'Media Proxy', status: 'online', latency: 78, cpu: '0.42', memory: { used: 2048, total: 4096, percent: '50.0' }, uptime: 86400 * 2 },
     gateway: { name: 'Gateway', status: 'online', latency: 156, cpu: '0.31', memory: { used: 1024, total: 2048, percent: '45.0' }, uptime: 86400 * 12 },
-    webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18', memory: { used: 1536, total: 4096, percent: '37.5' }, uptime: 86400 * 30 }
+webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18', memory: { used: 1536, total: 4096, percent: '37.5' }, uptime: 86400 * 30 }
   });
 
   useEffect(() => {
-  const fetchRoomData = async () => {
-    // 1. 방 코드로 해당 방 정보를 가져옵니다.
-    const { data, error } = await supabase
-      .from('rooms')
-      .select('*')
-      .eq('room_code', generatedCode)
-      .single(); // 데이터가 하나일 것이므로 single 사용
-
-    if (error) {
-      console.error("방 정보를 가져오는 중 에러 발생:", error);
-      return;
-    }
-
-    if (data) {
-      // 2. 받아온 데이터를 state에 저장합니다.
-      // 서버 정보(dynamicServers)를 업데이트하는 대신, 방 상태(roomState)를 만드세요.
-      setRoomState({
-        hostName: data.host_name,
-        guestName: data.guest_name,
-        hostReady: data.host_ready,
-        guestReady: data.guest_ready,
-        isGuestJoined: !!data.guest_id // guest_id가 null이 아니면 입장한 것!
-      });
-    }
-  };
-
-  if (generatedCode) {
-    fetchRoomData();
-  }
-}, [generatedCode]);
-    // 2. Supabase 실시간 구독 설정
     const subscription = supabase
       .channel('server_updates')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'servers_status' }, (payload) => {
@@ -1547,9 +1516,9 @@ const ServerStatus = () => {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [] // 👈 깔끔하게 하나로 끝냄
+  }, []);
 
-   const formatUptime = (seconds) => {
+  const formatUptime = (seconds) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -1557,30 +1526,6 @@ const ServerStatus = () => {
     if (hours > 0) return `${hours}시간 ${mins}분`;
     return `${mins}분`;
   };
-
-  const servers = [
-    { ...dynamicServers.api, history: realtimeHistory.api },
-    { ...dynamicServers.mediaProxy, history: realtimeHistory.mediaProxy },
-    { ...dynamicServers.gateway, history: realtimeHistory.gateway }
-  ];
-
-  const webPages = { ...dynamicServers.webPages, history: realtimeHistory.webPages };
-
-class ServerStatusErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  render() {
-    if (this.state.hasError) {
-      return <div style={{ color: 'red', padding: '50px' }}><h1>Error in ServerStatus</h1><pre>{this.state.error.toString()}</pre><pre>{this.state.error.stack}</pre></div>;
-    }
-    return this.props.children;
-  }
-}
 
   return (
     <ServerStatusErrorBoundary>
@@ -1654,6 +1599,7 @@ class ServerStatusErrorBoundary extends React.Component {
     </div>
     </ServerStatusErrorBoundary>
   );
+};
 
 const PrivateBattle = () => {
   const navigate = useNavigate();

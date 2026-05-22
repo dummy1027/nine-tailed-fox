@@ -204,6 +204,11 @@ export default function BattleArena() {
   const navigate = useNavigate();
   const isDev = import.meta.env.DEV;
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const roomCode = searchParams.get('room');
+  const myRole = searchParams.get('mode'); // 'host' or 'guest'
+  const isPrivateBattle = !!roomCode;
+
   // 매칭 상태
   const [phase, setPhase] = useState('matching'); // matching | countdown | battle | gameover
   const [matchTimer, setMatchTimer] = useState(MATCH_TIMEOUT_SEC);
@@ -289,8 +294,64 @@ export default function BattleArena() {
   /* ─── Supabase Realtime 매칭 ─── */
   useEffect(() => {
     if (phase !== 'matching') return;
+
+    // 비공개 배틀 모드
+    if (isPrivateBattle) {
+      const fetchRoomData = async () => {
+        const { data } = await supabase
+          .from('rooms')
+          .select('*')
+          .eq('room_code', roomCode)
+          .single();
+        
+        if (data) {
+          // Determine opponent based on role
+          if (myRole === 'host' && data.guest_id) {
+            setOpponent({
+              username: data.guest_name || '상대방',
+              score: 0,
+              rank_title: 'beginner',
+              isBot: false,
+              userId: data.guest_id
+            });
+            setPhase('countdown');
+          } else if (myRole === 'guest' && data.host_id) {
+            setOpponent({
+              username: data.host_name || '방장',
+              score: data.host_score || 0,
+              rank_title: getRank(data.host_score || 0),
+              isBot: false,
+              userId: data.host_id
+            });
+            setPhase('countdown');
+          }
+        }
+      };
+
+      fetchRoomData();
+
+      // Realtime subscription
+      const ch = supabase.channel(`room-${roomCode}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${roomCode}` }, (payload) => {
+          const latest = payload.new;
+          if (myRole === 'host' && latest.guest_id && latest.guest_ready) {
+            setOpponent({
+              username: latest.guest_name || '상대방',
+              score: 0,
+              rank_title: 'beginner',
+              isBot: false,
+              userId: latest.guest_id
+            });
+            setPhase('countdown');
+          }
+        })
+        .subscribe();
+
+      return () => supabase.removeChannel(ch);
+    }
+
+    // 개발 모드: 3초 후 봇 매칭
     if (isDev || !user) {
-      // 개발 모드: 3초 후 봇 매칭
       const t = setTimeout(() => startBotMatch(), 2000);
       return () => clearTimeout(t);
     }
@@ -353,7 +414,7 @@ export default function BattleArena() {
       }
     };
     // eslint-disable-next-line
-  }, [phase, user, isDev]);
+  }, [phase, user, isDev, isPrivateBattle, roomCode, myRole]);
 
   const fetchOpponent = async (roomId) => {
     const { data } = await supabase
