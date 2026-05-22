@@ -2647,10 +2647,16 @@ class ServerStatusErrorBoundary extends React.Component {
 };
 
 const PrivateBattle = () => {
+  // 🎯 페이지 이동을 위한 리액트 라우터 훅 추가
+  const navigate = useNavigate();
+
   const [rooms, setRooms] = useState([]);
   const [view, setView] = useState('list'); // 'list' 또는 'created'
   const [generatedCode, setGeneratedCode] = useState('');
   const [isReady, setIsReady] = useState(false);
+  
+  // 🎯 사용자가 입력하는 입장 코드를 추적하기 위한 상태값 추가
+  const [inputCode, setInputCode] = useState('');
 
   const handleCreateRoom = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -2662,6 +2668,23 @@ const PrivateBattle = () => {
     setView('created');
   };
 
+  // 🎯 [방장 입장] 대기실에서 매치 시작하거나 준비 후 게임룸 진입할 때 호출
+  const handleStartBattle = () => {
+    if (!generatedCode) return;
+    // 주소창에 ?room=ABCDEF&mode=host 형식으로 코드를 실어서 친구가 만들고 있는 배틀 아레나로 이동합니다.
+    navigate(`/battle-arena?room=${generatedCode}&mode=host`);
+  };
+
+  // 🎯 [참여자 입장] 코드를 입력하고 방 참여하기를 눌렀을 때 호출
+  const handleJoinRoom = () => {
+    if (inputCode.trim().length !== 6) {
+      alert('6자리 코드를 정확히 입력해주세요!');
+      return;
+    }
+    // 주소창에 ?room=코드를 실어서 배틀 아레나로 게스트 입장시킵니다.
+    navigate(`/battle-arena?room=${inputCode.toUpperCase()}&mode=guest`);
+  };
+
   // 1. 방 생성 후 대기 화면 (참여자 목록 표 포함)
   if (view === 'created') {
     return (
@@ -2670,7 +2693,7 @@ const PrivateBattle = () => {
           <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '8px' }} className="text-gradient">전투 대기실</h2>
           <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '25px', fontSize: '15px' }}>친구에게 아래 코드를 공유하세요</p>
           
-          {/* 🎯 방 코드 박스: Paradox 시그니처 테두리 그라데이션 적용 */}
+          {/* 방 코드 박스 */}
           <div style={{ 
             background: 'linear-gradient(var(--theme-surface), var(--theme-surface)) padding-box, linear-gradient(135deg, #cb6ce6, #38b6ff) border-box',
             border: '3px dashed transparent',
@@ -2728,6 +2751,26 @@ const PrivateBattle = () => {
             >
               {isReady ? '✓ 준비완료' : '준비하기'}
             </button>
+            
+            {/* 🎯 [추가] 준비 완료되면 배틀룸으로 바로 진입할 수 있는 입장 액션 연결 */}
+            <button 
+              onClick={handleStartBattle}
+              className="btn paradox-bg"
+              style={{ 
+                padding: '14px 35px', 
+                borderRadius: '12px', 
+                border: 'none', 
+                color: 'white', 
+                fontSize: '15px',
+                fontWeight: '700', 
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(203, 108, 230, 0.25)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              ⚔️ 경기장 입장
+            </button>
+
             <button 
               onClick={() => setView('list')}
               style={{ 
@@ -2767,7 +2810,7 @@ const PrivateBattle = () => {
 
           {/* 참여/생성 버튼 섹션 */}
           <div style={{ flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* 🎯 방 생성 버튼: Paradox 시그니처 꽉 찬 그라데이션 배경 적용 */}
+            {/* 방 생성 버튼 */}
             <button 
               onClick={handleCreateRoom}
               className="btn paradox-bg"
@@ -2791,9 +2834,13 @@ const PrivateBattle = () => {
             {/* 코드 입력 참여 섹션 */}
             <div style={{ backgroundColor: 'var(--theme-surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--theme-border)', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
               <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--theme-secondary-text)', display: 'block', marginBottom: '15px' }}>입장 코드로 참여</span>
+              
+              {/* 🎯 입력 데이터 바인딩 연동 (inputCode 상태와 매칭) */}
               <input 
                 placeholder="CODE6" 
                 maxLength={6}
+                value={inputCode}
+                onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                 style={{ 
                   width: '100%', 
                   padding: '14px', 
@@ -2811,8 +2858,9 @@ const PrivateBattle = () => {
                 }}
               />
               
-              {/* 🎯 방 참여하기 버튼: Paradox 테두리 그라데이션 처리 */}
+              {/* 🎯 방 참여하기 버튼: 클릭 시 주소 들고 날아가도록 handleJoinRoom 액션 연결 */}
               <button 
+                onClick={handleJoinRoom}
                 className="btn"
                 style={{ 
                   width: '100%', 
