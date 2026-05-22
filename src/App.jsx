@@ -2094,6 +2094,7 @@ const Workbook = () => {
   );
 };
 
+// ⭕ App.jsx의 const Ranking 시작부터 끝나는 구역까지만 찾아서 덮어쓰기 하세요!
 const Ranking = () => {
   // 🎯 자바스크립트 순서(TDZ) 에러를 원천 차단하기 위해 함수 내부 최상단에 상수를 박았습니다.
   const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
