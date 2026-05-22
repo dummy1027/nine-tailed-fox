@@ -202,7 +202,7 @@ int main() {
 // Community component removed as it is now imported from ./Community.jsx
 
 // CodeUp.kr 기초 100제 기반 문제집
-import { problems } from './problems';
+import { problems, levelColors } from './problems';
 
 const KEYWORDS = [
   'printf', 'scanf', 'include', 'stdio.h', 'stdlib.h', 'string.h', 'math.h',

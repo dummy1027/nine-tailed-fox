@@ -974,7 +974,7 @@ int main() {
   ]
 };
 
-const levelColors = {
+export const levelColors = {
   output: '#3498db',
   inputOperator: '#2ecc71',
   conditional: '#9b59b6',
