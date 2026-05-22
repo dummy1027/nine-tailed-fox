@@ -1477,31 +1477,36 @@ const ServerStatus = () => {
   });
 
   useEffect(() => {
-    // 1. 처음 로딩 시 DB에서 데이터 가져오기
-    const fetchInitialStatus = async () => {
-      // 수정: rooms 테이블을 사용하고, 존재하는 컬럼만 필터링
-const { data } = await supabase.from('rooms').select('*').eq('room_code', generatedCode);
-      if (data) {
-        const newServers = {};
-        data.forEach(s => {
-          newServers[s.id] = {
-            name: s.name,
-            status: s.status,
-            latency: s.latency,
-            cpu: s.cpu,
-            memory: { 
-              used: s.memory_used, 
-              total: s.memory_total, 
-              percent: ((s.memory_used / s.memory_total) * 100).toFixed(1) 
-            },
-            uptime: s.uptime
-          };
-        });
-        setDynamicServers(prev => ({ ...prev, ...newServers }));
-      }
-    };
-    fetchInitialStatus();
+  const fetchRoomData = async () => {
+    // 1. 방 코드로 해당 방 정보를 가져옵니다.
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('room_code', generatedCode)
+      .single(); // 데이터가 하나일 것이므로 single 사용
 
+    if (error) {
+      console.error("방 정보를 가져오는 중 에러 발생:", error);
+      return;
+    }
+
+    if (data) {
+      // 2. 받아온 데이터를 state에 저장합니다.
+      // 서버 정보(dynamicServers)를 업데이트하는 대신, 방 상태(roomState)를 만드세요.
+      setRoomState({
+        hostName: data.host_name,
+        guestName: data.guest_name,
+        hostReady: data.host_ready,
+        guestReady: data.guest_ready,
+        isGuestJoined: !!data.guest_id // guest_id가 null이 아니면 입장한 것!
+      });
+    }
+  };
+
+  if (generatedCode) {
+    fetchRoomData();
+  }
+}, [generatedCode]);
     // 2. Supabase 실시간 구독 설정
     const subscription = supabase
       .channel('server_updates')
@@ -1542,7 +1547,7 @@ const { data } = await supabase.from('rooms').select('*').eq('room_code', genera
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []); // 👈 깔끔하게 하나로 끝냄
+  }, [] // 👈 깔끔하게 하나로 끝냄
 
    const formatUptime = (seconds) => {
     const days = Math.floor(seconds / 86400);
@@ -1649,7 +1654,6 @@ class ServerStatusErrorBoundary extends React.Component {
     </div>
     </ServerStatusErrorBoundary>
   );
-};
 
 const PrivateBattle = () => {
   const navigate = useNavigate();
