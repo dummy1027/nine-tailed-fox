@@ -2191,7 +2191,7 @@ const Ranking = () => {
           ))}
         </div>
 
-        {/* 🎯 [복원 완료] 유저 이름 검색창과 매치 버튼들을 한 줄로 완벽 정렬 */}
+        {/* 🎯 검색창과 Paradox 시그니처 그라데이션 버튼 세트 */}
         <div style={{ 
           display: 'flex', 
           gap: '15px', 
@@ -2212,29 +2212,62 @@ const Ranking = () => {
             }}
           />
           
-          {/* ⚔️ 랜덤 매치 버튼 */}
+          {/* ⚔️ 랜덤 매치 버튼 (시그니처 배경 그라데이션) */}
           <button 
             className="btn paradox-bg" 
-            style={{ padding: '14px 25px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', borderRadius: '12px' }} 
+            style={{ 
+              padding: '14px 25px', 
+              fontSize: '15px', 
+              fontWeight: '700', 
+              cursor: 'pointer', 
+              borderRadius: '12px',
+              border: 'none',
+              color: 'white',
+              transition: 'transform 0.2s ease, opacity 0.2s ease'
+            }} 
             onClick={() => navigate('/battle-arena')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.03)';
+              e.currentTarget.style.opacity = '0.9';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.opacity = '1';
+            }}
           >
             ⚔️ 랜덤 매치
           </button>
           
-          {/* 🔒 비공개 매치 버튼 */}
+          {/* 🔒 비공개 매치 버튼 (시그니처 테두리 그라데이션 + 네온 발광) */}
           <button 
             className="btn" 
             style={{ 
-              padding: '14px 25px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', borderRadius: '12px',
-              backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)'
+              padding: '14px 25px', 
+              fontSize: '15px', 
+              fontWeight: '700', 
+              cursor: 'pointer', 
+              borderRadius: '12px',
+              color: 'var(--theme-text)',
+              background: 'linear-gradient(var(--theme-surface), var(--theme-surface)) padding-box, linear-gradient(135deg, #cb6ce6, #38b6ff) border-box',
+              border: '2px solid transparent',
+              boxShadow: '0 4px 20px rgba(203, 108, 230, 0.15)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease'
             }} 
             onClick={() => navigate('/private-battle')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.03)';
+              e.currentTarget.style.boxShadow = '0 6px 25px rgba(203, 108, 230, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(203, 108, 230, 0.15)';
+            }}
           >
             🔒 비공개 매치
           </button>
         </div>
 
-        {/* 랭킹 메인 테이블 리스트 리스트 */}
+        {/* 랭킹 메인 테이블 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
             <div>Rank</div>
