@@ -1749,7 +1749,7 @@ const PrivateBattle = () => {
     }
   };
 
-  // 3️⃣ [공통] 준비 상태 토글 함수 (내가 방장이냐 게스트냐에 따라 DB 컬럼 다르게 업데이트)
+  // 3️⃣ [공통] 준비 상태 토글 함수
   const toggleReady = async () => {
     const nextReadyState = !isReady;
     setIsReady(nextReadyState);
@@ -1774,7 +1774,6 @@ const PrivateBattle = () => {
   useEffect(() => {
     if (!generatedCode || view !== 'created') return;
 
-    // 초기 방 데이터 로드
     const fetchRoomData = async () => {
       const { data } = await supabase
         .from('rooms')
@@ -1788,14 +1787,12 @@ const PrivateBattle = () => {
         setGuestName(data.guest_name);
         setIsGuestReady(data.guest_ready);
         
-        // 참여자로 들어왔을 때 UI 토글 싱크 맞추기
         if (myRole === 'guest') setIsReady(data.guest_ready);
         if (myRole === 'host') setIsReady(data.host_ready);
       }
     };
     fetchRoomData();
 
-    // 누군가 준비를 누르거나 들어오면 실시간 감지
     const realtimeChannel = supabase
       .channel(`room-${generatedCode}`)
       .on(
@@ -1807,8 +1804,6 @@ const PrivateBattle = () => {
           setIsHostReady(latest.host_ready);
           setGuestName(latest.guest_name);
           setIsGuestReady(latest.guest_ready);
-
-          // 🎯 만약 방장이 경기를 시작해서 둘 다 레디되어 경기장 넘어가면 자동 이동 연동 로직 추가 가능
         }
       )
       .subscribe();
@@ -1818,13 +1813,16 @@ const PrivateBattle = () => {
     };
   }, [generatedCode, view, myRole]);
 
-  // 5️⃣ 경기장 진짜 최종 입장 (둘 다 준비되었을 때 방장이 누르거나 자동 이동)
+  // 5️⃣ 경기장 진짜 최종 입장
   const handleStartBattle = () => {
     if (!generatedCode) return;
     navigate(`/battle-arena?room=${generatedCode}&mode=${myRole}`);
   };
 
-  // --- 렌더링 파트 ---
+
+  // ================= 렌더링 파트 =================
+
+  // 🅰️ 대기실 뷰 (방이 생성되었거나 참가했을 때)
   if (view === 'created') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
@@ -1851,7 +1849,6 @@ const PrivateBattle = () => {
                 </tr>
               </thead>
               <tbody>
-                {/* 방장 라인 */}
                 <tr style={{ borderBottom: '1px solid var(--theme-border)' }}>
                   <td style={{ padding: '14px 18px', fontSize: '14px', fontWeight: '700', color: '#cb6ce6' }}>
                     👑 {hostName || '방장'} {myRole === 'host' && '(나)'}
@@ -1860,7 +1857,6 @@ const PrivateBattle = () => {
                     {isHostReady ? '✓ 준비 완료' : '● 대기 중'}
                   </td>
                 </tr>
-                {/* 게스트 라인 */}
                 <tr>
                   <td style={{ padding: '14px 18px', fontSize: '14px', color: guestName ? 'var(--theme-text)' : 'var(--theme-secondary-text)', fontWeight: guestName ? '700' : '400' }}>
                     {guestName ? `⚔️ ${guestName} ${myRole === 'guest' && '(나)'}` : '👤 상대방을 기다리는 중...'}
@@ -1884,11 +1880,10 @@ const PrivateBattle = () => {
               {isReady ? '✓ 준비취소' : '준비하기'}
             </button>
             
-            {/* 둘 다 완료되면 경기장 입장 활성화 */}
             <button 
               onClick={handleStartBattle}
               className="btn paradox-bg"
-              disabled={!(isHostReady && isGuestReady)} // 둘 다 준비되어야 활성화 (임시 제한 해제 가능)
+              disabled={!(isHostReady && isGuestReady)}
               style={{ 
                 padding: '14px 35px', borderRadius: '12px', border: 'none', color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer', 
                 boxShadow: '0 4px 15px rgba(203, 108, 230, 0.25)', transition: 'all 0.2s ease',
@@ -1912,45 +1907,7 @@ const PrivateBattle = () => {
     );
   }
 
-  // 2. 메인 방 목록 & 참여하기 화면
-  return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px' }} className="text-gradient">비공개 배틀</h1>
-        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '35px', fontSize: '16px' }}>함께할 친구를 찾거나 방을 만드세요.</p>
-
-        <div style={{ display: 'flex', gap: '25px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1.5, minWidth: '300px', backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-            <div style={{ padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '15px', color: 'var(--theme-secondary-text)' }}>참여 가능한 방</div>
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>아직 생성된 방이 없어요</div>
-          </div>
-
-          <div style={{ flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <button onClick={handleCreateRoom} className="btn paradox-bg" style={{ padding: '16px', borderRadius: '12px', border: 'none', color: 'white', fontSize: '16px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 15px rgba(203, 108, 230, 0.25)' }}>
-              ➕ 새로운 방 생성
-            </button>
-
-            <div style={{ backgroundColor: 'var(--theme-surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--theme-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--theme-secondary-text)', display: 'block', marginBottom: '15px' }}>입장 코드로 참여</span>
-              <input placeholder="CODE6" maxLength={6} value={inputCode} onChange={(e) => setInputCode(e.target.value.toUpperCase())} style={{ width: '100%', padding: '14px', borderRadius: '10px', backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', textAlign: 'center', fontSize: '20px', fontWeight: '800', letterSpacing: '4px', marginBottom: '15px', boxSizing: 'border-box', outline: 'none' }} />
-              <button onClick={handleJoinRoom} className="btn" style={{ width: '100%', padding: '14px', borderRadius: '12px', color: 'var(--theme-text)', background: 'linear-gradient(var(--theme-surface), var(--theme-surface)) padding-box, linear-gradient(135deg, #cb6ce6, #38b6ff) border-box', border: '2px solid transparent', fontWeight: '700', fontSize: '15px', cursor: 'pointer' }}>
-                🚪 방 참여하기
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: '50px', textAlign: 'center' }}>
-          <Link to="/ranking" style={{ color: '#38b6ff', textDecoration: 'underline', fontSize: '16px', fontWeight: '500' }}>
-            ← 랭킹으로 돌아가기
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-  // 2. 메인 방 목록 & 참여하기 화면 (코드 입력창 개선)
+  // 🅱️ 메인 방 목록 & 참여하기 화면 (중복 제거 후 '코드 입력창 개선 버전' 하나만 남김)
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -1991,7 +1948,6 @@ const PrivateBattle = () => {
             <div style={{ backgroundColor: 'var(--theme-surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--theme-border)', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
               <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--theme-secondary-text)', display: 'block', marginBottom: '15px' }}>입장 코드로 참여</span>
               
-              {/* 🎯 입력 데이터 바인딩 연동 (inputCode 상태와 매칭) */}
               <input 
                 placeholder="CODE6" 
                 maxLength={6}
@@ -2014,7 +1970,6 @@ const PrivateBattle = () => {
                 }}
               />
               
-              {/* 🎯 방 참여하기 버튼: 클릭 시 주소 들고 날아가도록 handleJoinRoom 액션 연결 */}
               <button 
                 onClick={handleJoinRoom}
                 className="btn"
@@ -2049,6 +2004,8 @@ const PrivateBattle = () => {
       </div>
     </div>
   );
+}; // 🎯 PrivateBattle 컴포넌트 마침 (여기서 딱 한 번만 깔끔하게 닫힙니다)
+
 
 // --- 파트 4: 앱 설정 ---
 function App() {
@@ -2109,9 +2066,5 @@ function App() {
     </AuthProvider>
   );
 }
-
-// 1. 파일 상단에 useState가 없다면 추가 확인 (이미 있다면 생략)
-// import { useState } from 'react';
-
 
 export default App;
