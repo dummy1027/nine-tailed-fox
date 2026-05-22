@@ -2287,13 +2287,12 @@ const Ranking = () => {
 
         {/* 랭킹 메인 테이블 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
             <div>Rank</div>
             <div>User</div>
             <div style={{ textAlign: 'center' }}>Score</div>
             <div style={{ textAlign: 'center' }}>Solved</div>
             <div style={{ textAlign: 'center' }}>Rating</div>
-            <div style={{ textAlign: 'center' }}>Streak</div>
           </div>
 
           {loading ? (
@@ -2308,7 +2307,7 @@ const Ranking = () => {
               <div
                 key={user.username || index}
                 style={{
-                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px',
+                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px', padding: '16px 20px',
                   borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none', alignItems: 'center'
                 }}
               >
@@ -2333,11 +2332,6 @@ const Ranking = () => {
                 <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
                 <div style={{ textAlign: 'center', color: 'var(--theme-text)' }}>{user.solved_problems?.length || 0}개</div>
                 <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
-                <div style={{ textAlign: 'center' }}>
-                  <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
-                    🔥 {user.streak || 0}
-                  </span>
-                </div>
               </div>
             ))
           )}
