@@ -2096,7 +2096,7 @@ const Workbook = () => {
 
 // ⭕ App.jsx의 const Ranking 시작부터 끝나는 구역까지만 찾아서 덮어쓰기 하세요!
 const Ranking = () => {
-  // 🎯 자바스크립트 순서(TDZ) 에러를 원천 차단하기 위해 함수 내부 최상단에 상수를 박았습니다.
+  // 자바스크립트 순서 에러(TDZ) 방지를 위해 내부 최상단에 상수 고정
   const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
   const RANK_COLORS = {
     beginner: '#95a5a6',
@@ -2191,80 +2191,70 @@ const Ranking = () => {
           ))}
         </div>
 
-        {/* 🎯 검색창과 Paradox 시그니처 그라데이션 버튼 세트 */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '15px', 
-          alignItems: 'center', 
-          marginBottom: '30px',
-          flexWrap: 'wrap'
-        }}>
-          {/* 검색창 인풋 */}
+        {/* 🎯 ① 사용자 검색창 [위]에 매치 버튼 배치 + ② 같은 색상 그라데이션 + ③ 정확히 절반 반반 길이 분할 */}
+        <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+          {/* 랜덤 매치 버튼 (꽉 찬 시그니처 그라데이션) */}
+          <button 
+            className="btn paradox-bg" 
+            style={{ 
+              flex: 1, // 50%의 공간을 정확히 차지
+              padding: '16px 0', 
+              fontSize: '16px', 
+              fontWeight: '700', 
+              cursor: 'pointer', 
+              borderRadius: '12px',
+              border: 'none',
+              color: 'white',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              transition: 'transform 0.2s ease'
+            }} 
+            onClick={() => navigate('/battle-arena')}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            ⚔️ 랜덤 매치
+          </button>
+          
+          {/* 비공개 매치 버튼 (랜덤 매치와 완전히 100% 동일한 꽉 찬 시그니처 그라데이션) */}
+          <button 
+            className="btn paradox-bg" 
+            style={{ 
+              flex: 1, // 50%의 공간을 정확히 차지
+              padding: '16px 0', 
+              fontSize: '16px', 
+              fontWeight: '700', 
+              cursor: 'pointer', 
+              borderRadius: '12px',
+              border: 'none',
+              color: 'white',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              transition: 'transform 0.2s ease'
+            }} 
+            onClick={() => navigate('/private-battle')}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            🔒 비공개 매치
+          </button>
+        </div>
+
+        {/* 사용자 검색창 (매치 버튼 아래로 깔끔하게 배치) */}
+        <div style={{ marginBottom: '30px' }}>
           <input
             type="text"
             placeholder="검색할 사용자의 닉네임을 입력하세요..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
-              flex: 1, minWidth: '200px', padding: '14px 20px', fontSize: '15px', borderRadius: '12px',
+              width: '100%', padding: '14px 20px', fontSize: '15px', borderRadius: '12px',
               backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)',
               color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box'
             }}
           />
-          
-          {/* ⚔️ 랜덤 매치 버튼 (시그니처 배경 그라데이션) */}
-          <button 
-            className="btn paradox-bg" 
-            style={{ 
-              padding: '14px 25px', 
-              fontSize: '15px', 
-              fontWeight: '700', 
-              cursor: 'pointer', 
-              borderRadius: '12px',
-              border: 'none',
-              color: 'white',
-              transition: 'transform 0.2s ease, opacity 0.2s ease'
-            }} 
-            onClick={() => navigate('/battle-arena')}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.03)';
-              e.currentTarget.style.opacity = '0.9';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.opacity = '1';
-            }}
-          >
-            ⚔️ 랜덤 매치
-          </button>
-          
-          {/* 🔒 비공개 매치 버튼 (시그니처 테두리 그라데이션 + 네온 발광) */}
-          <button 
-            className="btn" 
-            style={{ 
-              padding: '14px 25px', 
-              fontSize: '15px', 
-              fontWeight: '700', 
-              cursor: 'pointer', 
-              borderRadius: '12px',
-              color: 'var(--theme-text)',
-              background: 'linear-gradient(var(--theme-surface), var(--theme-surface)) padding-box, linear-gradient(135deg, #cb6ce6, #38b6ff) border-box',
-              border: '2px solid transparent',
-              boxShadow: '0 4px 20px rgba(203, 108, 230, 0.15)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-            }} 
-            onClick={() => navigate('/private-battle')}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.03)';
-              e.currentTarget.style.boxShadow = '0 6px 25px rgba(203, 108, 230, 0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(203, 108, 230, 0.15)';
-            }}
-          >
-            🔒 비공개 매치
-          </button>
         </div>
 
         {/* 랭킹 메인 테이블 */}
