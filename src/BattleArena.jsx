@@ -106,29 +106,65 @@ export default function BattleArena() {
   const [battleResult, setBattleResult] = useState(null); // 'win' | 'lose' | 'draw'
   const [damageAnim, setDamageAnim] = useState({ my: false, opp: false });
   const [problemCount, setProblemCount] = useState(0);
-
-  // refs
+  const [exitConfirm, setExitConfirm] = useState(false);
+  const [pendingNavigate, setPendingNavigate] = useState(null);
+  const mirrorRef = useRef(null);
   const textareaRef = useRef(null);
   const preRef = useRef(null);
-  const channelRef = useRef(null);
   const oppBotTimerRef = useRef(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestIndex, setSuggestIndex] = useState(0);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [suggestPos, setSuggestPos] = useState({ top: 0, left: 0 });
 
-  /* ─── 매칭 타이머 ─── */
+  const updateSuggestPos = (textBeforeCursor) => {
+    if (!mirrorRef.current || !textareaRef.current) return;
+    const mirror = mirrorRef.current;
+    mirror.textContent = textBeforeCursor;
+    const span = document.createElement('span');
+    span.textContent = '|';
+    mirror.appendChild(span);
+    const { offsetTop, offsetLeft } = span;
+    setSuggestPos({ top: offsetTop + 25, left: offsetLeft });
+  };
+
+  const handleSelectSuggestion = (suggestion) => {
+    const start = textareaRef.current.selectionStart;
+    const value = code;
+    const lastWordMatch = value.substring(0, start).match(/[\w#.]+$/);
+    if (!lastWordMatch) return;
+    const wordStart = start - lastWordMatch[0].length;
+    let insertValue = suggestion;
+    let cursorShift = suggestion.length;
+    if (FUNC_KW.includes(suggestion)) { insertValue += '()'; cursorShift += 1; }
+    const newCode = value.substring(0, wordStart) + insertValue + value.substring(start);
+    setCode(newCode);
+    setShowSuggest(false);
+    setTimeout(() => { textareaRef.current.focus(); const newPos = wordStart + cursorShift; textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newPos; }, 0);
+  };
+
   useEffect(() => {
-    if (phase !== 'matching') return;
-    const iv = setInterval(() => {
-      setMatchTimer(prev => {
-        if (prev <= 1) {
-          clearInterval(iv);
-          // 시간 초과 → 봇 매칭
-          startBotMatch();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(iv);
-    // eslint-disable-next-line
+    if (phase !== 'battle') return;
+    const h = (e) => {
+      e.preventDefault();
+      e.returnValue = '배틀 중입니다. 정말 나가시겠습니까?';
+    };
+    window.addEventListener('beforeunload', h);
+
+    const handlePopState = () => {
+      if (phase === 'battle') {
+        window.history.pushState(null, '', window.location.href);
+        setShowLeaveModal(true);
+      }
+    };
+
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', h);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, [phase]);
 
   /* ─── Supabase Realtime 매칭 ─── */
@@ -391,24 +427,54 @@ export default function BattleArena() {
   };
 
   /* ─── 나가기 ─── */
-  const handleLeaveBattle = useCallback(async () => {
+  const handleLeaveBattle = useCallback(async (confirmed = false) => {
+    if (phase === 'battle' && !confirmed) {
+      setShowLeaveModal(true);
+      return;
+    }
     clearTimeout(oppBotTimerRef.current);
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     if (!isDev && user) {
       await supabase.from('battle_queue').delete().eq('user_id', user.id);
     }
     setShowLeaveModal(false);
+    setExitConfirm(false);
     navigate('/ranking');
-  }, [user, isDev, navigate]);
+  }, [user, isDev, navigate, phase]);
+
+  const handleForfeitAndLeave = () => {
+    if (phase === 'battle') {
+      setPhase('gameover');
+      setBattleResult('lose');
+    }
+    setShowLeaveModal(false);
+    setExitConfirm(false);
+    if (pendingNavigate) {
+      navigate(pendingNavigate);
+      setPendingNavigate(null);
+    } else {
+      navigate('/ranking');
+    }
+  };
 
   useEffect(() => {
-    const h = (e) => { if (phase === 'battle') { e.preventDefault(); e.returnValue = ''; } };
+    if (phase !== 'battle') return;
+    const h = (e) => {
+      e.preventDefault();
+      e.returnValue = '배틀 중입니다. 정말 나가시겠습니까?';
+    };
     window.addEventListener('beforeunload', h);
     return () => window.removeEventListener('beforeunload', h);
   }, [phase]);
 
   /* ─── 에디터 키 핸들러 ─── */
   const handleKeyDown = (e) => {
+    if (showSuggest) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestIndex(prev => (prev + 1) % suggestions.length); return; }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestIndex(prev => (prev - 1 + suggestions.length) % suggestions.length); return; }
+      else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); handleSelectSuggestion(suggestions[suggestIndex]); return; }
+      else if (e.key === 'Escape') { setShowSuggest(false); return; }
+    }
     if (e.key === 'Tab') {
       e.preventDefault();
       const s = e.target.selectionStart, en = e.target.selectionEnd;
@@ -432,6 +498,27 @@ export default function BattleArena() {
       const pairs = { '{': '}', '(': ')', '[': ']', '"': '"', "'": "'" };
       setCode(val.substring(0, s) + e.key + pairs[e.key] + val.substring(en));
       setTimeout(() => { if (textareaRef.current) textareaRef.current.selectionStart = textareaRef.current.selectionEnd = s + 1; }, 0);
+    }
+  };
+
+  const handleCodeChange = (e) => {
+    const val = e.target.value;
+    setCode(val);
+    const start = e.target.selectionStart;
+    const lastWordMatch = val.substring(0, start).match(/[\w#.]+$/);
+    if (lastWordMatch) {
+      const lastWord = lastWordMatch[0];
+      const filtered = KEYWORDS.filter(k => k.startsWith(lastWord) && k !== lastWord);
+      if (filtered.length > 0) {
+        setSuggestions(filtered);
+        setSuggestIndex(0);
+        setShowSuggest(true);
+        updateSuggestPos(val.substring(0, start));
+      } else {
+        setShowSuggest(false);
+      }
+    } else {
+      setShowSuggest(false);
     }
   };
 
@@ -704,34 +791,84 @@ export default function BattleArena() {
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#2ecc71' }} />
               </div>
             </div>
-            <div style={{ position: 'relative', height: 280, overflow: 'hidden' }}>
-              <pre ref={preRef} style={{
-                ...styles.editorBase,
-                position: 'absolute', inset: 0, pointerEvents: 'none',
-                color: 'transparent', background: 'transparent', overflow: 'hidden', zIndex: 1
+            <div style={{ position: 'relative', height: 320, overflow: 'hidden', display: 'flex', alignItems: 'stretch' }}>
+              {/* Line Numbers */}
+              <div style={{
+                width: 45, height: '100%', background: '#0d0d0e', color: '#4b4b4d',
+                fontFamily: '"Fira Code","Courier New",monospace', fontSize: 14, lineHeight: 1.6,
+                padding: '16px 0', textAlign: 'center', userSelect: 'none', borderRight: '1px solid #1c1c1e',
+                zIndex: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center'
               }}>
-                {highlightCode(code).map((tk, i) => <span key={i} style={{ color: tokenColor[tk.t] || '#e2e8f0' }}>{tk.v}</span>)}
-              </pre>
-              <textarea
-                ref={textareaRef}
-                value={code}
-                onChange={e => setCode(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onScroll={handleScroll}
-                spellCheck={false}
-                style={{
-                  ...styles.editorBase,
-                  position: 'absolute', inset: 0,
-                  background: '#0d0f14', color: 'transparent', caretColor: 'white',
-                  border: 'none', outline: 'none', resize: 'none', zIndex: 2, overflow: 'auto'
-                }}
-              />
+                {code.split('\n').map((_, i) => (
+                  <div key={i} style={{ color: '#4b4b4d' }}>{i + 1}</div>
+                ))}
+              </div>
+
+              {/* Editor area */}
+              <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+                {/* Mirror for autocomplete position */}
+                <div ref={mirrorRef} style={{
+                  position: 'absolute', top: 0, left: 0, padding: 16,
+                  fontFamily: '"Fira Code","Courier New",monospace', fontSize: 14, lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', visibility: 'hidden', width: '100%',
+                  zIndex: -1, pointerEvents: 'none', letterSpacing: 'normal', tabSize: 4
+                }} />
+
+                {/* Autocomplete suggestions */}
+                {showSuggest && (
+                  <div style={{
+                    position: 'absolute', top: suggestPos.top, left: suggestPos.left,
+                    background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8,
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)', zIndex: 10, minWidth: 150, maxHeight: 200, overflowY: 'auto'
+                  }}>
+                    {suggestions.map((s, i) => (
+                      <div key={i} onMouseEnter={() => setSuggestIndex(i)} onClick={() => handleSelectSuggestion(s)}
+                        style={{
+                          padding: '8px 12px', cursor: 'pointer',
+                          background: i === suggestIndex ? 'rgba(203, 110, 230, 0.2)' : 'transparent',
+                          color: i === suggestIndex ? '#cb6ce6' : '#fff', fontSize: 14, fontFamily: 'monospace'
+                        }}>
+                        <span>{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Syntax highlight layer */}
+                <pre ref={preRef} style={{
+                  position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                  margin: 0, padding: 16, fontFamily: '"Fira Code","Courier New",monospace',
+                  fontSize: 14, lineHeight: 1.6, tabSize: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                  background: '#0d0f14', color: '#e2e8f0', overflow: 'auto', zIndex: 1, pointerEvents: 'none',
+                  letterSpacing: 'normal', boxSizing: 'border-box', textAlign: 'left'
+                }}>
+                  {highlightCode(code).map((tk, i) => <span key={i} style={{ color: tokenColor[tk.t] || '#e2e8f0' }}>{tk.v}</span>)}
+                </pre>
+
+                {/* Actual textarea */}
+                <textarea
+                  ref={textareaRef}
+                  value={code}
+                  onChange={handleCodeChange}
+                  onKeyDown={handleKeyDown}
+                  onScroll={handleScroll}
+                  spellCheck={false}
+                  style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    margin: 0, padding: 16, fontFamily: '"Fira Code","Courier New",monospace',
+                    fontSize: 14, lineHeight: 1.6, tabSize: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                    background: 'transparent', color: 'transparent', caretColor: 'white',
+                    border: 'none', outline: 'none', resize: 'none', zIndex: 4, overflow: 'auto',
+                    letterSpacing: 'normal', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
             </div>
             <div style={{ padding: '8px 14px', borderTop: '1px solid var(--theme-border, #2a2d3a)', display: 'flex', gap: 8 }}>
               <button onClick={handleRun} style={{ ...styles.btn, background: 'linear-gradient(135deg, #004aad, #005cbf)' }}>▶ 실행</button>
               <button onClick={handleCheck} style={{ ...styles.btn, background: 'linear-gradient(135deg, #7c3aed, #cb6ce6)' }}>✓ 제출</button>
               <button onClick={handleReset} style={{ ...styles.btn, background: '#2a2d3a', color: '#8b8fa3' }}>↺ 초기화</button>
-              <button onClick={() => setShowLeaveModal(true)} style={{ ...styles.btn, background: 'rgba(231,76,60,0.15)', color: '#e74c3c', marginLeft: 'auto' }}>나가기</button>
+              <button onClick={() => handleLeaveBattle()} style={{ ...styles.btn, background: 'rgba(231,76,60,0.15)', color: '#e74c3c', marginLeft: 'auto' }}>나가기</button>
             </div>
           </div>
 
@@ -784,11 +921,11 @@ export default function BattleArena() {
         <div style={styles.modalOverlay}>
           <div style={styles.modalBox}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, fontFamily: "'Nunito', sans-serif" }}>배틀 포기 시 패배 처리됩니다</h3>
-            <p style={{ color: 'var(--theme-secondary-text, #8b8fa3)', marginBottom: 20, fontSize: 14 }}>정말 배틀에서 나가시겠습니까?</p>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, fontFamily: "'Nunito', sans-serif" }}>배틀 포기</h3>
+            <p style={{ color: 'var(--theme-secondary-text, #8b8fa3)', marginBottom: 20, fontSize: 14 }}>배틀에서 나가시면 패배 처리됩니다.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button onClick={() => setShowLeaveModal(false)} style={{ ...styles.btn, padding: '12px 24px', background: 'linear-gradient(135deg, #2ecc71, #27ae60)' }}>계속하기</button>
-              <button onClick={handleLeaveBattle} style={{ ...styles.btn, padding: '12px 24px', background: 'linear-gradient(135deg, #e74c3c, #c0392b)' }}>나가기 (패배)</button>
+              <button onClick={() => { setShowLeaveModal(false); setExitConfirm(false); }} style={{ ...styles.btn, padding: '12px 24px', background: 'linear-gradient(135deg, #2ecc71, #27ae60)' }}>계속하기</button>
+              <button onClick={handleForfeitAndLeave} style={{ ...styles.btn, padding: '12px 24px', background: 'linear-gradient(135deg, #e74c3c, #c0392b)' }}>나가기 (패배)</button>
             </div>
           </div>
         </div>
