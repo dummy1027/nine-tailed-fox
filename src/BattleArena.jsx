@@ -236,6 +236,8 @@ export default function BattleArena() {
   const preRef = useRef(null);
   const oppBotTimerRef = useRef(null);
   const channelRef = useRef(null);
+  const myHpRef = useRef(MAX_HP);
+  const oppHpRef = useRef(MAX_HP);
   const [suggestions, setSuggestions] = useState([]);
   const [suggestIndex, setSuggestIndex] = useState(0);
   const [showSuggest, setShowSuggest] = useState(false);
@@ -264,8 +266,22 @@ export default function BattleArena() {
     const newCode = value.substring(0, wordStart) + insertValue + value.substring(start);
     setCode(newCode);
     setShowSuggest(false);
-    setTimeout(() => { textareaRef.current.focus(); const newPos = wordStart + cursorShift; textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newPos; }, 0);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newPos = wordStart + cursorShift;
+        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newPos;
+      }
+    }, 0);
   };
+
+  useEffect(() => {
+    myHpRef.current = myHp;
+  }, [myHp]);
+
+  useEffect(() => {
+    oppHpRef.current = oppHp;
+  }, [oppHp]);
 
   useEffect(() => {
     if (phase !== 'battle') return;
@@ -496,19 +512,15 @@ export default function BattleArena() {
         if (prev <= 1) {
           clearInterval(iv);
           setPhase('gameover');
-          // 시간 종료 시 HP가 더 높은 쪽이 승리
-          setBattleResult(r => {
-            if (myHp > oppHp) return 'win';
-            if (myHp < oppHp) return 'lose';
-            return 'draw';
-          });
+          const result = myHpRef.current > oppHpRef.current ? 'win' : myHpRef.current < oppHpRef.current ? 'lose' : 'draw';
+          setBattleResult(result);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(iv);
-  }, [phase, myHp, oppHp]);
+  }, [phase]);
 
   /* ─── 봇 자동 풀이 (랜덤 타이밍) ─── */
   useEffect(() => {
@@ -641,9 +653,32 @@ export default function BattleArena() {
       e.preventDefault();
       e.returnValue = '배틀 중입니다. 정말 나가시겠습니까?';
     };
+    const handlePopState = () => {
+      if (phase === 'battle') {
+        window.history.pushState(null, '', window.location.href);
+        setShowLeaveModal(true);
+      }
+    };
+
+    window.history.pushState(null, '', window.location.href);
     window.addEventListener('beforeunload', h);
-    return () => window.removeEventListener('beforeunload', h);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', h);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'matching') return;
+    if (matchTimer <= 0) {
+      startBotMatch();
+      return;
+    }
+    const timer = setTimeout(() => setMatchTimer(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phase, matchTimer, opponent]);
 
   /* ─── 에디터 키 핸들러 ─── */
   const handleKeyDown = (e) => {
