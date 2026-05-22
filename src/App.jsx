@@ -1479,7 +1479,8 @@ const ServerStatus = () => {
   useEffect(() => {
     // 1. 처음 로딩 시 DB에서 데이터 가져오기
     const fetchInitialStatus = async () => {
-      const { data } = await supabase.from('servers_status').select('*');
+      // 수정: rooms 테이블을 사용하고, 존재하는 컬럼만 필터링
+const { data } = await supabase.from('rooms').select('*').eq('room_code', generatedCode);
       if (data) {
         const newServers = {};
         data.forEach(s => {
@@ -1651,45 +1652,178 @@ class ServerStatusErrorBoundary extends React.Component {
 };
 
 const PrivateBattle = () => {
-  // 🎯 페이지 이동을 위한 리액트 라우터 훅 추가
   const navigate = useNavigate();
+  const { user, profile } = useAuth(); // 로그인 유저 정보
 
   const [rooms, setRooms] = useState([]);
   const [view, setView] = useState('list'); // 'list' 또는 'created'
   const [generatedCode, setGeneratedCode] = useState('');
   const [isReady, setIsReady] = useState(false);
-  
-  // 🎯 사용자가 입력하는 입장 코드를 추적하기 위한 상태값 추가
   const [inputCode, setInputCode] = useState('');
 
-  const handleCreateRoom = () => {
+  // 🎯 내 역할이 방장(host)인지 참여자(guest)인지 구분하는 상태 추가
+  const [myRole, setMyRole] = useState('host'); 
+
+  // 실시간 백엔드로 연동할 데이터들
+  const [hostName, setHostName] = useState('');
+  const [isHostReady, setIsHostReady] = useState(false);
+  const [guestName, setGuestName] = useState(null);
+  const [isGuestReady, setIsGuestReady] = useState(false);
+
+  // 내 프로필 닉네임 구하기
+  const myName = profile?.username || user?.email?.split('@')[0] || '익명 유저';
+
+  // 1️⃣ [방장] 새로운 방 생성 + Supabase 등록
+  const handleCreateRoom = async () => {
+    if (!user) {
+      alert('로그인이 필요한 서비스입니다!');
+      return;
+    }
+
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
     for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    setGeneratedCode(code);
-    setView('created');
+
+    try {
+      const { error } = await supabase
+        .from('rooms')
+        .insert([
+          {
+            room_code: code,
+            host_id: user.id,
+            host_name: myName,
+            host_ready: false,
+            guest_id: null,
+            guest_name: null,
+            guest_ready: false
+          }
+        ]);
+
+      if (error) throw error;
+
+      setMyRole('host');
+      setHostName(myName);
+      setGeneratedCode(code);
+      setView('created');
+    } catch (err) {
+      console.error('방 생성 실패:', err.message);
+    }
   };
 
-  // 🎯 [방장 입장] 대기실에서 매치 시작하거나 준비 후 게임룸 진입할 때 호출
-  const handleStartBattle = () => {
-    if (!generatedCode) return;
-    // 주소창에 ?room=ABCDEF&mode=host 형식으로 코드를 실어서 친구가 만들고 있는 배틀 아레나로 이동합니다.
-    navigate(`/battle-arena?room=${generatedCode}&mode=host`);
-  };
-
-  // 🎯 [참여자 입장] 코드를 입력하고 방 참여하기를 눌렀을 때 호출
-  const handleJoinRoom = () => {
+  // 2️⃣ [참여자] 코드로 방 참가하기 ➡️ 경기장으로 바로 안 가고 '대기실'로 진입!
+  const handleJoinRoom = async () => {
     if (inputCode.trim().length !== 6) {
       alert('6자리 코드를 정확히 입력해주세요!');
       return;
     }
-    // 주소창에 ?room=코드를 실어서 배틀 아레나로 게스트 입장시킵니다.
-    navigate(`/battle-arena?room=${inputCode.toUpperCase()}&mode=guest`);
+    if (!user) {
+      alert('로그인이 필요합니다!');
+      return;
+    }
+
+    const targetCode = inputCode.toUpperCase();
+
+    try {
+      // Supabase에서 해당 방에 내 정보 업데이트
+      const { data, error } = await supabase
+        .from('rooms')
+        .update({
+          guest_id: user.id,
+          guest_name: myName
+        })
+        .eq('room_code', targetCode)
+        .select();
+
+      if (error || !data || data.length === 0) {
+        alert('존재하지 않거나 들어갈 수 없는 방입니다!');
+        return;
+      }
+
+      // 🎯 핵심: 바로 /battle-arena로 안 가고, 대기실 뷰로 전환!
+      setMyRole('guest');
+      setGeneratedCode(targetCode);
+      setView('created');
+    } catch (err) {
+      console.error('방 참가 실패:', err.message);
+    }
   };
 
-  // 1. 방 생성 후 대기 화면 (참여자 목록 표 포함)
+  // 3️⃣ [공통] 준비 상태 토글 함수
+  const toggleReady = async () => {
+    const nextReadyState = !isReady;
+    setIsReady(nextReadyState);
+
+    if (!generatedCode) return;
+
+    try {
+      const updateData = myRole === 'host' 
+        ? { host_ready: nextReadyState } 
+        : { guest_ready: nextReadyState };
+
+      await supabase
+        .from('rooms')
+        .update(updateData)
+        .eq('room_code', generatedCode);
+    } catch (err) {
+      console.error('준비 업데이트 실패:', err.message);
+    }
+  };
+
+  // 4️⃣ [실시간 연동] 대기실 내부 데이터 실시간 양방향 동기화
+  useEffect(() => {
+    if (!generatedCode || view !== 'created') return;
+
+    const fetchRoomData = async () => {
+      const { data } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('room_code', generatedCode)
+        .single();
+      
+      if (data) {
+        setHostName(data.host_name);
+        setIsHostReady(data.host_ready);
+        setGuestName(data.guest_name);
+        setIsGuestReady(data.guest_ready);
+        
+        if (myRole === 'guest') setIsReady(data.guest_ready);
+        if (myRole === 'host') setIsReady(data.host_ready);
+      }
+    };
+    fetchRoomData();
+
+    const realtimeChannel = supabase
+      .channel(`room-${generatedCode}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${generatedCode}` },
+        (payload) => {
+          const latest = payload.new;
+          setHostName(latest.host_name);
+          setIsHostReady(latest.host_ready);
+          setGuestName(latest.guest_name);
+          setIsGuestReady(latest.guest_ready);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(realtimeChannel);
+    };
+  }, [generatedCode, view, myRole]);
+
+  // 5️⃣ 경기장 진짜 최종 입장
+  const handleStartBattle = () => {
+    if (!generatedCode) return;
+    navigate(`/battle-arena?room=${generatedCode}&mode=${myRole}`);
+  };
+
+
+  // ================= 렌더링 파트 =================
+
+  // 🅰️ 대기실 뷰 (방이 생성되었거나 참가했을 때)
   if (view === 'created') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
@@ -1697,23 +1831,17 @@ const PrivateBattle = () => {
           <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '8px' }} className="text-gradient">전투 대기실</h2>
           <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '25px', fontSize: '15px' }}>친구에게 아래 코드를 공유하세요</p>
           
-          {/* 방 코드 박스 */}
           <div style={{ 
             background: 'linear-gradient(var(--theme-surface), var(--theme-surface)) padding-box, linear-gradient(135deg, #cb6ce6, #38b6ff) border-box',
-            border: '3px dashed transparent',
-            padding: '20px', 
-            borderRadius: '16px', 
-            marginBottom: '35px', 
-            display: 'inline-block', 
-            minWidth: '280px',
-            boxShadow: '0 4px 20px rgba(203, 108, 230, 0.15)'
+            border: '3px dashed transparent', padding: '20px', borderRadius: '16px', marginBottom: '35px', display: 'inline-block', minWidth: '280px', boxShadow: '0 4px 20px rgba(203, 108, 230, 0.15)'
           }}>
             <span style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '8px', color: '#cb6ce6' }}>{generatedCode}</span>
           </div>
 
-          {/* 참여자 목록 표 */}
           <div style={{ marginTop: '20px', textAlign: 'left' }}>
-            <h3 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: '600', color: 'var(--theme-text)' }}>참여자 목록 (1/2)</h3>
+            <h3 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: '600', color: 'var(--theme-text)' }}>
+              참여자 목록 ({guestName ? '2/2' : '1/2'})
+            </h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'var(--theme-bg)', borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--theme-border)' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--theme-surface)', borderBottom: '1px solid var(--theme-border)' }}>
@@ -1723,53 +1851,44 @@ const PrivateBattle = () => {
               </thead>
               <tbody>
                 <tr style={{ borderBottom: '1px solid var(--theme-border)' }}>
-                  <td style={{ padding: '14px 18px', fontSize: '14px', fontWeight: '500' }}>나 (방장)</td>
-                  <td style={{ padding: '14px 18px', fontSize: '14px', textAlign: 'right', color: isReady ? '#2ecc71' : '#f39c12', fontWeight: '700' }}>
-                    {isReady ? '✓ 준비 완료' : '● 대기 중'}
+                  <td style={{ padding: '14px 18px', fontSize: '14px', fontWeight: '700', color: '#cb6ce6' }}>
+                    👑 {hostName || '방장'} {myRole === 'host' && '(나)'}
+                  </td>
+                  <td style={{ padding: '14px 18px', fontSize: '14px', textAlign: 'right', color: isHostReady ? '#2ecc71' : '#f39c12', fontWeight: '700' }}>
+                    {isHostReady ? '✓ 준비 완료' : '● 대기 중'}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '14px 18px', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>대기 중...</td>
-                  <td style={{ padding: '14px 18px', fontSize: '14px', textAlign: 'right', color: 'var(--theme-secondary-text)' }}>-</td>
+                  <td style={{ padding: '14px 18px', fontSize: '14px', color: guestName ? 'var(--theme-text)' : 'var(--theme-secondary-text)', fontWeight: guestName ? '700' : '400' }}>
+                    {guestName ? `⚔️ ${guestName} ${myRole === 'guest' && '(나)'}` : '👤 상대방을 기다리는 중...'}
+                  </td>
+                  <td style={{ padding: '14px 18px', fontSize: '14px', textAlign: 'right', color: guestName ? (isGuestReady ? '#2ecc71' : '#f39c12') : 'var(--theme-secondary-text)', fontWeight: '600' }}>
+                    {guestName ? (isGuestReady ? '✓ 준비 완료' : '● 대기 중') : '-'}
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* 제어 버튼 세트 */}
           <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '40px' }}>
             <button 
-              onClick={() => setIsReady(!isReady)}
+              onClick={toggleReady} 
               style={{ 
-                padding: '14px 35px', 
-                borderRadius: '12px', 
-                backgroundColor: isReady ? '#2ecc71' : '#f39c12', 
-                border: 'none', 
-                color: 'white', 
-                fontSize: '15px',
-                fontWeight: '700', 
-                cursor: 'pointer',
-                boxShadow: isReady ? '0 4px 12px rgba(46,204,113,0.2)' : '0 4px 12px rgba(243,156,18,0.2)',
-                transition: 'all 0.2s ease'
+                padding: '14px 35px', borderRadius: '12px', backgroundColor: isReady ? '#2ecc71' : '#f39c12', border: 'none', color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer',
+                boxShadow: isReady ? '0 4px 12px rgba(46,204,113,0.2)' : '0 4px 12px rgba(243,156,18,0.2)', transition: 'all 0.2s ease'
               }}
             >
-              {isReady ? '✓ 준비완료' : '준비하기'}
+              {isReady ? '✓ 준비취소' : '준비하기'}
             </button>
             
-            {/* 🎯 [추가] 준비 완료되면 배틀룸으로 바로 진입할 수 있는 입장 액션 연결 */}
             <button 
               onClick={handleStartBattle}
               className="btn paradox-bg"
+              disabled={!(isHostReady && isGuestReady)}
               style={{ 
-                padding: '14px 35px', 
-                borderRadius: '12px', 
-                border: 'none', 
-                color: 'white', 
-                fontSize: '15px',
-                fontWeight: '700', 
-                cursor: 'pointer',
-                boxShadow: '0 4px 15px rgba(203, 108, 230, 0.25)',
-                transition: 'all 0.2s ease'
+                padding: '14px 35px', borderRadius: '12px', border: 'none', color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer', 
+                boxShadow: '0 4px 15px rgba(203, 108, 230, 0.25)', transition: 'all 0.2s ease',
+                opacity: (isHostReady && isGuestReady) ? 1 : 0.5
               }}
             >
               ⚔️ 경기장 입장
@@ -1778,16 +1897,7 @@ const PrivateBattle = () => {
             <button 
               onClick={() => setView('list')}
               style={{ 
-                padding: '14px 35px', 
-                borderRadius: '12px', 
-                backgroundColor: '#e74c3c', 
-                border: 'none', 
-                color: 'white', 
-                fontSize: '15px',
-                fontWeight: '700', 
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(231,76,60,0.2)',
-                transition: 'all 0.2s ease'
+                padding: '14px 35px', borderRadius: '12px', backgroundColor: '#e74c3c', border: 'none', color: 'white', fontSize: '15px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(231,76,60,0.2)', transition: 'all 0.2s ease'
               }}
             >
               방 닫기
@@ -1798,7 +1908,7 @@ const PrivateBattle = () => {
     );
   }
 
-  // 2. 메인 방 목록 & 참여하기 화면 (코드 입력창 개선)
+  // 🅱️ 메인 방 목록 & 참여하기 화면 (중복 제거 후 '코드 입력창 개선 버전' 하나만 남김)
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -1839,7 +1949,6 @@ const PrivateBattle = () => {
             <div style={{ backgroundColor: 'var(--theme-surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--theme-border)', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
               <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--theme-secondary-text)', display: 'block', marginBottom: '15px' }}>입장 코드로 참여</span>
               
-              {/* 🎯 입력 데이터 바인딩 연동 (inputCode 상태와 매칭) */}
               <input 
                 placeholder="CODE6" 
                 maxLength={6}
@@ -1862,7 +1971,6 @@ const PrivateBattle = () => {
                 }}
               />
               
-              {/* 🎯 방 참여하기 버튼: 클릭 시 주소 들고 날아가도록 handleJoinRoom 액션 연결 */}
               <button 
                 onClick={handleJoinRoom}
                 className="btn"
@@ -1897,7 +2005,8 @@ const PrivateBattle = () => {
       </div>
     </div>
   );
-};
+}; // 🎯 PrivateBattle 컴포넌트 마침 (여기서 딱 한 번만 깔끔하게 닫힙니다)
+
 
 // --- 파트 4: 앱 설정 ---
 function App() {
@@ -1958,9 +2067,5 @@ function App() {
     </AuthProvider>
   );
 }
-
-// 1. 파일 상단에 useState가 없다면 추가 확인 (이미 있다면 생략)
-// import { useState } from 'react';
-
 
 export default App;
