@@ -2110,7 +2110,7 @@ const Ranking = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [rankings, setRankings] = useState([]);
-  const [subSort, setSubSort] = useState(null);
+  const [sortBy, setSortBy] = useState('rating');
   const [loading, setLoading] = useState(false);
 
   const getRank = (score) => {
@@ -2259,66 +2259,31 @@ const Ranking = () => {
           />
         </div>
 
-        {/* 서브 정렬 버튼들 */}
+        {/* 정렬 버튼들 */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <button
-            onClick={() => setSubSort(subSort === 'solved' ? null : 'solved')}
+            onClick={() => setSortBy('solved')}
             style={{
               padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '13px', fontWeight: '600',
-              backgroundColor: subSort === 'solved' ? '#cb6ce6' : 'var(--theme-surface)',
-              color: subSort === 'solved' ? 'white' : 'var(--theme-text)'
+              backgroundColor: sortBy === 'solved' ? '#cb6ce6' : 'var(--theme-surface)',
+              color: sortBy === 'solved' ? 'white' : 'var(--theme-text)'
             }}
           >
-            🏆 문제 풋수
+            🏆 문제 푼수
           </button>
           <button
-            onClick={() => setSubSort(subSort === 'rating' ? null : 'rating')}
+            onClick={() => setSortBy('rating')}
             style={{
               padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '13px', fontWeight: '600',
-              backgroundColor: subSort === 'rating' ? '#f39c12' : 'var(--theme-surface)',
-              color: subSort === 'rating' ? 'white' : 'var(--theme-text)'
+              backgroundColor: sortBy === 'rating' ? '#f39c12' : 'var(--theme-surface)',
+              color: sortBy === 'rating' ? 'white' : 'var(--theme-text)'
             }}
           >
             ⭐ 레이팅
           </button>
-          <button
-            onClick={() => setSubSort(subSort === 'streak' ? null : 'streak')}
-            style={{
-              padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-              fontSize: '13px', fontWeight: '600',
-              backgroundColor: subSort === 'streak' ? '#2ecc71' : 'var(--theme-surface)',
-              color: subSort === 'streak' ? 'white' : 'var(--theme-text)'
-            }}
-          >
-            🔥 스트라이크
-          </button>
         </div>
-
-        {/* 서브 정렬 테이블 */}
-        {subSort && (
-          <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)', marginBottom: '20px', overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 120px', padding: '12px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontSize: '13px', fontWeight: '600', color: 'var(--theme-secondary-text)' }}>
-              <div>#</div>
-              <div>User</div>
-              <div style={{ textAlign: 'center' }}>{subSort === 'solved' ? '문제 풋수' : subSort === 'rating' ? '레이팅' : '스트라이크'}</div>
-            </div>
-            {rankings.slice().sort((a, b) => {
-              if (subSort === 'solved') return (b.solved_problems?.length || 0) - (a.solved_problems?.length || 0);
-              if (subSort === 'rating') return (b.rating || 0) - (a.rating || 0);
-              return (b.streak || 0) - (a.streak || 0);
-            }).map((user, index) => (
-              <div key={user.username || index} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 120px', padding: '12px 20px', borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none', alignItems: 'center', fontSize: '14px' }}>
-                <div style={{ color: 'var(--theme-secondary-text)' }}>{index + 1}</div>
-                <div style={{ fontWeight: '500' }}>{user.username}</div>
-                <div style={{ textAlign: 'center', fontWeight: '600', color: subSort === 'solved' ? '#cb6ce6' : subSort === 'rating' ? '#f39c12' : '#2ecc71' }}>
-                  {subSort === 'solved' ? user.solved_problems?.length || 0 : subSort === 'rating' ? user.rating || '-' : user.streak || 0}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* 랭킹 메인 테이블 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
@@ -2336,7 +2301,10 @@ const Ranking = () => {
           ) : rankings.length === 0 ? (
             <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>랭커가 존재하지 않습니다.</div>
           ) : (
-            rankings.map((user, index) => (
+            rankings.slice().sort((a, b) => {
+              if (sortBy === 'solved') return (b.solved_problems?.length || 0) - (a.solved_problems?.length || 0);
+              return (b.rating || 0) - (a.rating || 0);
+            }).map((user, index) => (
               <div
                 key={user.username || index}
                 style={{
@@ -2345,12 +2313,12 @@ const Ranking = () => {
                 }}
               >
                 <div style={{ fontWeight: '700' }}>
-                  {user.rank <= 3 ? (
-                    <span style={{ color: user.rank === 1 ? '#ffd700' : user.rank === 2 ? '#c0c0c0' : '#cd7f32' }}>
-                      {user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'} {user.rank}
+                  {index + 1 <= 3 ? (
+                    <span style={{ color: index + 1 === 1 ? '#ffd700' : index + 1 === 2 ? '#c0c0c0' : '#cd7f32' }}>
+                      {index + 1 === 1 ? '🥇' : index + 1 === 2 ? '🥈' : '🥉'} {index + 1}
                     </span>
                   ) : (
-                    <span style={{ color: 'var(--theme-secondary-text)' }}>{user.rank}</span>
+                    <span style={{ color: 'var(--theme-secondary-text)' }}>{index + 1}</span>
                   )}
                 </div>
                 <div style={{ fontWeight: '500' }}>
