@@ -361,6 +361,15 @@ export default function BattleArena() {
               userId: latest.guest_id
             });
             setPhase('countdown');
+          } else if (myRole === 'guest' && latest.host_id && latest.host_ready) {
+            setOpponent({
+              username: latest.host_name || '방장',
+              score: latest.host_score || 0,
+              rank_title: getRank(latest.host_score || 0),
+              isBot: false,
+              userId: latest.host_id
+            });
+            setPhase('countdown');
           }
         })
         .subscribe();
