@@ -2094,6 +2094,17 @@ const Workbook = () => {
   );
 };
 
+// 1️⃣ 컴포넌트 바깥 세상(윗줄)에 상수를 먼저 똭! 선언해 둡니다.
+const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
+const RANK_COLORS = {
+  beginner: '#95a5a6',
+  veteran: '#3498db',
+  expert: '#9b59b6',
+  master: '#f39c12',
+  grandmaster: '#e74c3c'
+};
+
+// 2️⃣ 그 다음에 컴포넌트가 시작되어야 위에서 상수를 안전하게 가져다 씁니다!
 const Ranking = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
