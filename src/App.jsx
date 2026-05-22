@@ -2125,7 +2125,7 @@ const Ranking = () => {
     try {
       let query = supabase
         .from('profiles')
-        .select('username, score, solved, rating, streak')
+        .select('username, score, solved_problems, rating, streak')
         .order('score', { ascending: false });
 
       if (searchWord.trim() !== '') {
@@ -2301,7 +2301,7 @@ const Ranking = () => {
                   </span>
                 </div>
                 <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
-                <div style={{ textAlign: 'center', color: 'var(--theme-text)' }}>{user.solved || 0}개</div>
+                <div style={{ textAlign: 'center', color: 'var(--theme-text)' }}>{user.solved_problems?.length || 0}개</div>
                 <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
