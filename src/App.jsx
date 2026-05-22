@@ -1529,7 +1529,6 @@ webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18'
   };
 
   return (
-    <ServerStatusErrorBoundary>
     <div style={{
       minHeight: '100vh',
       backgroundColor: 'var(--theme-bg)',
@@ -1598,7 +1597,6 @@ webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18'
         </div>
       </div>
     </div>
-    </ServerStatusErrorBoundary>
   );
 };
 
