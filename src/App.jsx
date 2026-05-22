@@ -14,21 +14,7 @@ import AuthModal from './AuthModal';
 const BattleArena = lazy(() => import('./BattleArena'));
 const PrivateBattle = lazy(() => import('./PrivateBattle'));
 
-function App() {
-  return (
-    <AuthProvider>
-      {/* 이전에 작성하셨던 Router, Routes, Navbar 등의 레이아웃 코드 */}
-      <div className="app-container">
-        <img src={logo} alt="Logo" />
-        {/* 예시 구조 */}
-        <Routes>
-          <Route path="/battle" element={<BattleArena />} />
-          {/* 다른 라우트들... */}
-        </Routes>
-      </div>
-    </AuthProvider>
-  );
-}
+
 function NavAuthArea({ onOpen }) {
   const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
