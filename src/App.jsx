@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { User, Settings, Activity, CheckCircle2, XCircle, Clock, Image, Globe, Monitor } from 'lucide-react';
 import './App.css';
 import CPreview from './CPreview';
 import Community from './Community';
@@ -10,7 +12,6 @@ import logo from './assets/logo.png';
 import { AuthProvider, useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 import AuthModal from './AuthModal';
-import { User, Settings } from 'lucide-react';
 
 function NavAuthArea({ onOpen }) {
   const { user, profile, logout } = useAuth();
@@ -2326,12 +2327,19 @@ const Ranking = () => {
   );
 };
 
+const statusConfig = {
+  online: { color: '#23a559', icon: CheckCircle2, label: 'Operational' },
+  offline: { color: '#ed4245', icon: XCircle, label: 'Outage' },
+  degraded: { color: '#f0b232', icon: Clock, label: 'Degraded' },
+};
+
 const ServerCard = ({ server, formatUptime }) => {
-  const config = statusConfig[server.status] || { color: '#23a559', icon: CheckCircle2, label: 'Unknown' };
+  const config = statusConfig[server?.status] || { color: '#23a559', icon: CheckCircle2, label: 'Unknown' };
   const StatusIcon = config.icon;
-  const ServerIcon = server.icon || Activity;
-  const serverColor = server.color || '#23a559';
-  const gradientId = server.name.replace(/[^a-zA-Z0-9]/g, '_');
+  const ServerIcon = server?.icon || Activity;
+  const serverColor = server?.color || '#23a559';
+  const serverName = server?.name || 'Unknown Server';
+  const gradientId = serverName.replace(/[^a-zA-Z0-9]/g, '_');
 
   return (
     <div style={{
@@ -2343,7 +2351,7 @@ const ServerCard = ({ server, formatUptime }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <ServerIcon size={20} color="var(--theme-secondary-text)" />
-          <span style={{ fontSize: '18px', fontWeight: '600', color: 'var(--theme-text)' }}>{server.name}</span>
+          <span style={{ fontSize: '18px', fontWeight: '600', color: 'var(--theme-text)' }}>{serverName}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <StatusIcon size={16} color={config.color} />
@@ -2524,7 +2532,24 @@ const ServerStatus = () => {
 
   const webPages = { ...dynamicServers.webPages, history: realtimeHistory.webPages };
 
+class ServerStatusErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{ color: 'red', padding: '50px' }}><h1>Error in ServerStatus</h1><pre>{this.state.error.toString()}</pre><pre>{this.state.error.stack}</pre></div>;
+    }
+    return this.props.children;
+  }
+}
+
   return (
+    <ServerStatusErrorBoundary>
     <div style={{
       minHeight: '100vh',
       backgroundColor: 'var(--theme-bg)',
@@ -2593,6 +2618,7 @@ const ServerStatus = () => {
         </div>
       </div>
     </div>
+    </ServerStatusErrorBoundary>
   );
 };
 
