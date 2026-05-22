@@ -2094,23 +2094,27 @@ const Workbook = () => {
   );
 };
 
-const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
+// ⭕ 안전한 색상 대소문자 방어 코드가 추가된 변수 선언
 const RANK_COLORS = {
-  beginner: '#95a5a6',
-  veteran: '#3498db',
-  expert: '#9b59b6',
-  master: '#f39c12',
-  grandmaster: '#e74c3c'
+  beginner: '#3498db',
+  veteran: '#2ecc71',
+  expert: '#e67e22',
+  master: '#9b59b6',
+  grandmaster: '#e74c3c',
+  // 대문자로 들어오는 경우까지 완벽 방어
+  BEGINNER: '#3498db',
+  VETERAN: '#2ecc71',
+  EXPERT: '#e67e22',
+  MASTER: '#9b59b6',
+  GRANDMASTER: '#e74c3c'
 };
 
 const Ranking = () => {
   const { user, profile } = useAuth();
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 점수에 따른 티어 칭호 부여 함수 (기존 로직 그대로 유지)
   const getRank = (score) => {
     if (score < 100) return 'beginner';
     if (score < 300) return 'veteran';
@@ -2119,159 +2123,28 @@ const Ranking = () => {
     return 'grandmaster';
   };
 
-  const [queueStatus, setQueueStatus] = useState('idle'); // 'idle' | 'waiting' | 'matched'
-  const [matchInfo, setMatchInfo] = useState(null);
-  const [battleError, setBattleError] = useState('');
-
-  const findBestMatch = (waitingUsers, myScore, myRank) => {
-    const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
-    const myRankIndex = RANK_ORDER.indexOf(myRank);
-
-    let bestMatch = null;
-    let bestScore = Infinity;
-
-    for (const user of waitingUsers) {
-      if (user.user_id === user?.id) continue;
-      const rankIndex = RANK_ORDER.indexOf(user.rank_title);
-      const rankDiff = Math.abs(rankIndex - myRankIndex);
-      const scoreDiff = Math.abs(user.score - myScore);
-
-      let matchScore = rankDiff * 500 + scoreDiff;
-
-      if (rankDiff === 0) matchScore *= 0.5;
-      if (rankDiff <= 1) matchScore *= 0.8;
-
-      if (matchScore < bestScore) {
-        bestScore = matchScore;
-        bestMatch = user;
-      }
-    }
-
-    return bestMatch;
-  };
-
-  const joinRandomBattle = async () => {
-    if (!user) {
-      setBattleError('로그인 후 이용해주세요.');
-      return;
-    }
-    setBattleError('');
-    setQueueStatus('waiting');
-
-    try {
-      const existing = await supabase
-        .from('battle_queue')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'waiting')
-        .maybeSingle();
-
-      if (existing) {
-        setMatchInfo({ opponent: null, isCreator: true });
-        setQueueStatus('waiting');
-        return;
-      }
-
-      const myScore = profile?.score || 0;
-      const myRank = getRank(myScore);
-
-      const { data: queueData, error: queueError } = await supabase
-        .from('battle_queue')
-        .insert({
-          user_id: user.id,
-          username: user.username || user.email?.split('@')[0] || 'Anonymous',
-          score: myScore,
-          rating: profile?.rating || 0,
-          streak: profile?.streak || 0,
-          rank_title: myRank
-        })
-        .select()
-        .single();
-
-      if (queueError) throw queueError;
-
-      const { data: allWaiting } = await supabase
-        .from('battle_queue')
-        .select('*')
-        .eq('status', 'waiting')
-        .neq('user_id', user.id)
-        .order('joined_at', { ascending: true });
-
-      if (allWaiting && allWaiting.length > 0) {
-        const bestMatch = findBestMatch(allWaiting, myScore, myRank);
-        if (bestMatch) {
-          await supabase.from('battle_queue').update({ status: 'matched' }).in('id', [queueData.id, bestMatch.id]);
-          setMatchInfo({ opponent: bestMatch, isCreator: true });
-          setQueueStatus('matched');
-          return;
-        }
-      }
-
-      setMatchInfo({ queueId: queueData.id, isCreator: true });
-      setQueueStatus('waiting');
-    } catch (err) {
-      console.error('Battle queue error:', err);
-      setBattleError('배틀 참여에 실패했습니다.');
-      setQueueStatus('idle');
-    }
-  };
-
-  useEffect(() => {
-    if (queueStatus !== 'waiting') return;
-    const interval = setInterval(async () => {
-      try {
-        const myScore = profile?.score || 0;
-        const myRank = getRank(myScore);
-
-        const { data: allWaiting } = await supabase
-          .from('battle_queue')
-          .select('*')
-          .eq('status', 'waiting')
-          .neq('user_id', user?.id)
-          .order('joined_at', { ascending: true });
-
-        if (allWaiting && allWaiting.length > 0) {
-          const bestMatch = findBestMatch(allWaiting, myScore, myRank);
-          const myQueue = await supabase.from('battle_queue').select('id').eq('user_id', user.id).eq('status', 'waiting').maybeSingle();
-          if (myQueue && bestMatch) {
-            await supabase.from('battle_queue').update({ status: 'matched' }).in('id', [myQueue.id, bestMatch.id]);
-            setMatchInfo({ opponent: bestMatch, isCreator: false });
-            setQueueStatus('matched');
-          }
-        }
-      } catch (err) {
-        console.error('Match check error:', err);
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [queueStatus, user, profile]);
-
-  // 실시간 Supabase 랭킹 데이터 연동 함수
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
     try {
-      // 1. 여기서 기본 쿼리를 세팅합니다 (solved 확인 완료!)
+      // 1. Supabase에서 solved를 포함한 실시간 데이터 명확히 Select
       let query = supabase
         .from('profiles')
         .select('username, score, solved, rating, streak')
         .order('score', { ascending: false });
 
-      // 2. 검색어가 있으면 검색 조건을 쿼리에 추가합니다
       if (searchWord.trim() !== '') {
         query = query.ilike('username', `%${searchWord}%`);
       }
 
-      // 3. 최종적으로 완성된 쿼리를 여기서 실행(await)합니다!
       const { data, error } = await query;
       if (error) throw error;
 
-      // 4. 등수 및 티어 계산
+      // 2. 순위 및 안전하게 티어 명칭 계산 부여
       const calculatedRank = data.map((user, index) => ({
         rank: index + 1,
         rankTitle: getRank(user.score || 0),
         ...user
       }));
-
       setRankings(calculatedRank);
     } catch (error) {
       console.error('Ranking data load failed:', error.message);
@@ -2280,160 +2153,31 @@ const Ranking = () => {
     }
   };
 
-  // 검색창에 유저가 이름을 타이핑할 때마다 실시간으로 리스트 갱신하기
   useEffect(() => {
     fetchRankingData(searchQuery);
   }, [searchQuery]);
 
+  // 안전하게 테마 컬러를 매칭해주는 헬퍼 기능
+  const getColor = (title) => {
+    const key = title ? title.toLowerCase() : 'beginner';
+    return RANK_COLORS[key] || '#3498db';
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
-          Ranking
-        </h1>
-        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '20px', fontSize: '16px' }}>
-          다른 사용자들과 점수를 비교하고 순위를 확인하세요!
-        </p>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">실시간 랭킹</h1>
+        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '40px', fontSize: '16px' }}>Paradox 전 세계 탑 랭커들의 스코어보드입니다.</p>
 
-        {queueStatus === 'idle' && (
-          <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
-            <button style={{
-              flex: 1, padding: '15px 25px', borderRadius: '12px',
-              background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
-              border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
-            }} onClick={joinRandomBattle}>
-              🎲 무작위 배틀
-            </button>
-            <button style={{
-              flex: 1, padding: '15px 25px', borderRadius: '12px',
-              background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
-              border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
-            }} onClick={() => navigate('/private-battle')}>
-              🔒 비공개 배틀
-            </button>
-          </div>
-        )}
-
-        {queueStatus === 'waiting' && (
-          <div style={{
-            padding: '30px',
-            backgroundColor: 'var(--theme-surface)',
-            borderRadius: '16px',
-            border: '1px solid var(--theme-border)',
-            textAlign: 'center',
-            marginBottom: '30px'
-          }}>
-            {/* 상단 배틀 메뉴 버튼 영역 */}
-            <div style={{ fontSize: '40px', marginBottom: '15px' }}>🔍</div>
-            <h3 style={{ fontSize: '1.3rem', marginBottom: '10px' }}>상대 찾기 중...</h3>
-            <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '20px' }}>잠시만 기다려주세요. 가장 가까운 상대를 찾고 있습니다.</p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-              <div style={{
-                width: '12px', height: '12px', borderRadius: '50%',
-                backgroundColor: queueStatus === 'waiting' ? '#f39c12' : 'transparent',
-                animation: 'pulse 1.5s infinite'
-              }} />
-            </div>
-            <button
-              onClick={async () => {
-                await supabase.from('battle_queue').update({ status: 'cancelled' }).eq('user_id', user.id).eq('status', 'waiting');
-                setQueueStatus('idle');
-              }}
-              style={{
-                marginTop: '20px', padding: '10px 25px', borderRadius: '10px',
-                backgroundColor: '#ff4b4b', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer'
-              }}
-            >
-              취소
-            </button>
-          </div>
-        )}
-        
-
-        {queueStatus === 'matched' && matchInfo?.opponent && (
-          <div style={{
-            padding: '30px',
-            backgroundColor: 'var(--theme-surface)',
-            borderRadius: '16px',
-            border: '2px solid #2ecc71',
-            textAlign: 'center',
-            marginBottom: '30px'
-          }}>
-            <div style={{ fontSize: '40px', marginBottom: '15px' }}>⚔️</div>
-            <h3 style={{ fontSize: '1.3rem', marginBottom: '10px' }}>상대 찾기 완료!</h3>
-            <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '20px' }}>
-              상대: <strong>{matchInfo.opponent.username}</strong> ({RANK_COLORS[matchInfo.opponent.rank_title] ? matchInfo.opponent.rank_title : 'beginner'})
-            </p>
-            <p style={{ fontSize: '13px', color: 'var(--theme-secondary-text)' }}>
-              점수: {matchInfo.opponent.score} | 레이팅: {matchInfo.opponent.rating} | 스트릭: {matchInfo.opponent.streak}
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px' }}>
-              <button
-                onClick={() => {
-                  setQueueStatus('idle');
-                  setMatchInfo(null);
-                  navigate('/battle-arena');
-                }}
-                style={{
-                  padding: '12px 30px', borderRadius: '10px',
-                  backgroundColor: '#2ecc71', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer'
-                }}
-              >
-                ⚔️ 배틀 시작!
-              </button>
-              <button
-                onClick={() => {
-                  setQueueStatus('idle');
-                  setMatchInfo(null);
-                }}
-                style={{
-                  padding: '12px 25px', borderRadius: '10px',
-                  backgroundColor: '#95a5a6', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer'
-                }}
-              >
-                나중에
-              </button>
-            </div>
-          </div>
-        )}
-
-        {battleError && (
-          <div style={{
-            padding: '12px 20px',
-            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-            border: '1px solid #e74c3c',
-            borderRadius: '10px',
-            color: '#e74c3c',
-            marginBottom: '20px',
-            textAlign: 'center'
-          }}>
-            {battleError}
-          </div>
-        )}
-
-        {/* 티어 기준 가이드 맵핑 영역 */}
-        <div style={{
-          display: 'flex', gap: '12px', marginBottom: '30px', padding: '14px 20px',
-          backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)',
-          justify: 'center', flexWrap: 'wrap'
-        }}>
-          {RANK_ORDER.map((rank, i) => (
-            <div key={rank} style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px',
-              backgroundColor: `${RANK_COLORS[rank]}15`, borderRadius: '8px', border: `1px solid ${RANK_COLORS[rank]}40`
-            }}>
-              <span style={{
-                padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700',
-                backgroundColor: RANK_COLORS[rank], color: 'white', textTransform: 'uppercase'
-              }}>
+        {/* 상단 티어 가이드라인 가로바 */}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '30px' }}>
+          {Object.keys(RANK_COLORS).slice(0, 5).map((rank) => (
+            <div key={rank} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: `${RANK_COLORS[rank]}15`, borderRadius: '8px', border: `1px solid ${RANK_COLORS[rank]}40` }}>
+              <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', backgroundColor: RANK_COLORS[rank], color: 'white', textTransform: 'uppercase' }}>
                 {rank}
               </span>
               <span style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>
-                {i === 0 ? '0' : i === 1 ? '100' : i === 2 ? '300' : i === 3 ? '600' : '1000'}+
+                {rank === 'beginner' ? '0' : rank === 'veteran' ? '100' : rank === 'expert' ? '300' : rank === 'master' ? '600' : '1000'}+
               </span>
             </div>
           ))}
@@ -2441,19 +2185,9 @@ const Ranking = () => {
 
         {/* 닉네임 실시간 검색창 */}
         <div style={{ position: 'relative', maxWidth: '100%', marginBottom: '30px' }}>
-          <input
-            type="text"
-            placeholder="검색할 사용자의 닉네임을 입력하세요..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%', padding: '14px 20px', fontSize: '15px', borderRadius: '12px',
-              backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)',
-              color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s'
-            }}
-          />
+          <input type="text" placeholder="검색할 사용자의 닉네임을 입력하세요..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '14px 20px', fontSize: '15px', borderRadius: '12px', backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box' }} />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--theme-secondary-text)', cursor: 'pointer', fontSize: '14px' }}>
+            <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--theme-secondary-text)', cursor: 'pointer' }}>
               초기화
             </button>
           )}
@@ -2461,39 +2195,28 @@ const Ranking = () => {
 
         {/* 실시간 랭킹 보드 판넬 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
-            <div>Rank</div>
-            <div>User</div>
-            <div style={{ textAlign: 'center' }}>Score</div>
-            <div style={{ textAlign: 'center' }}>Solved</div>
-            <div style={{ textAlign: 'center' }}>Rating</div>
-            <div style={{ textAlign: 'center' }}>Streak</div>
+          {/* 헤더 행 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 150px 120px 120px 100px', padding: '18px 24px', backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', color: 'var(--theme-secondary-text)', fontSize: '14px', textAlign: 'center' }}>
+            <div>순위</div>
+            <div style={{ textAlign: 'left' }}>사용자</div>
+            <div>점수</div>
+            <div>문제 푼 수</div>
+            <div>레이팅</div>
+            <div>스트릭</div>
           </div>
 
+          {/* 바디 행 */}
           {loading ? (
-            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
-              유저 정보를 실시간 조회하는 중... 🚀
-            </div>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>데이터 동기화 중...</div>
           ) : rankings.length === 0 ? (
-            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
-              {searchQuery ? `"${searchQuery}" 유저를 찾을 수 없습니다 ˃ ˄ ˂` : "아직 해결한 사람들이 없어요 ˃ ˄ ˂"}
-            </div>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>검색 결과가 없습니다.</div>
           ) : (
-            rankings.map((user, index) => (
-              <div
-                key={user.username || index}
-                style={{
-                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px',
-                  borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none',
-                  alignItems: 'center', transition: 'background 0.2s', cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                {/* 순위 마크 연출 */}
-                <div style={{ fontWeight: '700' }}>
+            rankings.map((user) => (
+              <div key={user.rank} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 150px 120px 120px 100px', padding: '18px 24px', borderBottom: '1px solid var(--theme-border)', alignItems: 'center', fontSize: '15px' }}>
+                {/* 등수 */}
+                <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
                   {user.rank <= 3 ? (
-                    <span style={{ color: user.rank === 1 ? '#ffd700' : user.rank === 2 ? '#c0c0c0' : '#cd7f32' }}>
+                    <span style={{ fontSize: '18px', color: user.rank === 1 ? '#f1c40f' : user.rank === 2 ? '#95a5a6' : '#cd7f32' }}>
                       {user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'} {user.rank}
                     </span>
                   ) : (
@@ -2502,27 +2225,29 @@ const Ranking = () => {
                 </div>
 
                 {/* 유저 닉네임 + 티어 뱃지 */}
-                <div style={{ fontWeight: '500' }}>
+                <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {user.username || '익명 랭커'}
-                  <span style={{
-                    marginLeft: '8px', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600',
-                    backgroundColor: `${RANK_COLORS[user.rankTitle]}20`, color: RANK_COLORS[user.rankTitle],
-                    textTransform: 'uppercase'
-                  }}>
+                  <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', backgroundColor: `${getColor(user.rankTitle)}20`, color: getColor(user.rankTitle), textTransform: 'uppercase' }}>
                     {user.rankTitle}
                   </span>
                 </div>
 
-                {/* 진짜 데이터 수치 연동단 (Score / Solved / Rating / Streak) */}
+                {/* 점수 */}
                 <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>
                   {(user.score || 0).toLocaleString()} XP
                 </div>
-                <div style={{ textAlign: 'center', color: 'var(--theme-secondary-text)' }}>
+
+                {/* 🔥 문제 푼 수 완벽 연동 */}
+                <div style={{ textAlign: 'center', color: 'var(--theme-text)', fontWeight: '500' }}>
                   {user.solved || 0}개
                 </div>
+
+                {/* 레이팅 */}
                 <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>
                   {user.rating || '-'}
                 </div>
+
+                {/* 스트릭 */}
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
                     🔥 {user.streak || 0}
@@ -2531,12 +2256,6 @@ const Ranking = () => {
               </div>
             ))
           )}
-        </div>
-
-        <div style={{ marginTop: '40px', textAlign: 'center' }}>
-          <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
-            ← 돌아가기
-          </Link>
         </div>
       </div>
     </div>
