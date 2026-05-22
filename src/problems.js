@@ -985,7 +985,7 @@ export const levelColors = {
   structure: '#95a5a6'
 };
 
-const levelLabels = {
+export const levelLabels = {
   output: '출력문',
   inputOperator: '입출력/연산자',
   conditional: '조건문',
