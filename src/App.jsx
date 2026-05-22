@@ -2094,27 +2094,13 @@ const Workbook = () => {
   );
 };
 
-// ⭕ 안전한 색상 대소문자 방어 코드가 추가된 변수 선언
-const RANK_COLORS = {
-  beginner: '#3498db',
-  veteran: '#2ecc71',
-  expert: '#e67e22',
-  master: '#9b59b6',
-  grandmaster: '#e74c3c',
-  // 대문자로 들어오는 경우까지 완벽 방어
-  BEGINNER: '#3498db',
-  VETERAN: '#2ecc71',
-  EXPERT: '#e67e22',
-  MASTER: '#9b59b6',
-  GRANDMASTER: '#e74c3c'
-};
-
 const Ranking = () => {
-  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // 점수에 따른 티어 칭호 (정확히 소문자로 매칭하여 상수의 key와 일치시킴)
   const getRank = (score) => {
     if (score < 100) return 'beginner';
     if (score < 300) return 'veteran';
@@ -2123,10 +2109,11 @@ const Ranking = () => {
     return 'grandmaster';
   };
 
+  // 실시간 데이터 Fetch 함수
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
     try {
-      // 1. Supabase에서 solved를 포함한 실시간 데이터 명확히 Select
+      // 1. Supabase에서 문제 푼 수(solved)를 포함해 정상 Select
       let query = supabase
         .from('profiles')
         .select('username, score, solved, rating, streak')
@@ -2139,12 +2126,13 @@ const Ranking = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      // 2. 순위 및 안전하게 티어 명칭 계산 부여
+      // 2. 등수 및 티어 칭호 부여
       const calculatedRank = data.map((user, index) => ({
         rank: index + 1,
         rankTitle: getRank(user.score || 0),
         ...user
       }));
+
       setRankings(calculatedRank);
     } catch (error) {
       console.error('Ranking data load failed:', error.message);
@@ -2157,97 +2145,153 @@ const Ranking = () => {
     fetchRankingData(searchQuery);
   }, [searchQuery]);
 
-  // 안전하게 테마 컬러를 매칭해주는 헬퍼 기능
-  const getColor = (title) => {
+  // 대소문자 억까 방어용 안전 벨트 함수 (RANK_COLORS 매칭 실패 방지)
+  const getTierColor = (title) => {
     const key = title ? title.toLowerCase() : 'beginner';
-    return RANK_COLORS[key] || '#3498db';
+    return RANK_COLORS[key] || '#95a5a6'; // 매칭 실패 시 기본 beginner 색상 부여
   };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">실시간 랭킹</h1>
-        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '40px', fontSize: '16px' }}>Paradox 전 세계 탑 랭커들의 스코어보드입니다.</p>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px' }} className="text-gradient">
+          Ranking
+        </h1>
+        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '20px', fontSize: '16px' }}>
+          다른 사용자들과 점수를 비교하고 순위를 확인하세요!
+        </p>
 
-        {/* 상단 티어 가이드라인 가로바 */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '30px' }}>
-          {Object.keys(RANK_COLORS).slice(0, 5).map((rank) => (
-            <div key={rank} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: `${RANK_COLORS[rank]}15`, borderRadius: '8px', border: `1px solid ${RANK_COLORS[rank]}40` }}>
-              <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', backgroundColor: RANK_COLORS[rank], color: 'white', textTransform: 'uppercase' }}>
+        {/* 배틀 입장 메뉴 버튼 영역 */}
+        <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
+          <button 
+            style={{
+              flex: 1, padding: '15px 25px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
+              border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
+            }}
+            onClick={() => navigate('/battle-arena')} // 👈 방금 만든 배틀 아레나 라우터 연결!
+          >
+            🎲 무작위 배틀
+          </button>
+          <button style={{
+            flex: 1, padding: '15px 25px', borderRadius: '12px',
+            background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
+            border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+            transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
+          }} onClick={() => navigate('/private-battle')}>
+            🔒 비공개 배틀
+          </button>
+        </div>
+
+        {/* 상단 티어 가이드라인 안내 바 */}
+        <div style={{
+          display: 'flex', gap: '12px', marginBottom: '30px', padding: '14px 20px',
+          backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)',
+          justifyContent: 'center', flexWrap: 'wrap'
+        }}>
+          {RANK_ORDER.map((rank, i) => (
+            <div key={rank} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px',
+              backgroundColor: `${RANK_COLORS[rank]}15`, borderRadius: '8px', border: `1px solid ${RANK_COLORS[rank]}40`
+            }}>
+              <span style={{
+                padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700',
+                backgroundColor: RANK_COLORS[rank], color: 'white', textTransform: 'uppercase'
+              }}>
                 {rank}
               </span>
               <span style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>
-                {rank === 'beginner' ? '0' : rank === 'veteran' ? '100' : rank === 'expert' ? '300' : rank === 'master' ? '600' : '1000'}+
+                {i === 0 ? '0' : i === 1 ? '100' : i === 2 ? '300' : i === 3 ? '600' : '1000'}+
               </span>
             </div>
           ))}
         </div>
 
-        {/* 닉네임 실시간 검색창 */}
+        {/* 검색 인풋창 */}
         <div style={{ position: 'relative', maxWidth: '100%', marginBottom: '30px' }}>
-          <input type="text" placeholder="검색할 사용자의 닉네임을 입력하세요..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '14px 20px', fontSize: '15px', borderRadius: '12px', backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box' }} />
+          <input
+            type="text"
+            placeholder="검색할 사용자의 닉네임을 입력하세요..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%', padding: '14px 20px', fontSize: '15px', borderRadius: '12px',
+              backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)',
+              color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s'
+            }}
+          />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--theme-secondary-text)', cursor: 'pointer' }}>
+            <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--theme-secondary-text)', cursor: 'pointer', fontSize: '14px' }}>
               초기화
             </button>
           )}
         </div>
 
-        {/* 실시간 랭킹 보드 판넬 */}
+        {/* 실시간 리스트 렌더링 영역 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
-          {/* 헤더 행 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 150px 120px 120px 100px', padding: '18px 24px', backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', color: 'var(--theme-secondary-text)', fontSize: '14px', textAlign: 'center' }}>
-            <div>순위</div>
-            <div style={{ textAlign: 'left' }}>사용자</div>
-            <div>점수</div>
-            <div>문제 푼 수</div>
-            <div>레이팅</div>
-            <div>스트릭</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
+            <div>Rank</div>
+            <div>User</div>
+            <div style={{ textAlign: 'center' }}>Score</div>
+            <div style={{ textAlign: 'center' }}>Solved</div>
+            <div style={{ textAlign: 'center' }}>Rating</div>
+            <div style={{ textAlign: 'center' }}>Streak</div>
           </div>
 
-          {/* 바디 행 */}
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>데이터 동기화 중...</div>
+            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
+              유저 정보를 조회하는 중... 🚀
+            </div>
           ) : rankings.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>검색 결과가 없습니다.</div>
+            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
+              {searchQuery ? `"${searchQuery}" 유저를 찾을 수 없습니다 ˃ ˄ ˂` : "아직 해결한 사람들이 없어요 ˃ ˄ ˂"}
+            </div>
           ) : (
-            rankings.map((user) => (
-              <div key={user.rank} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 150px 120px 120px 100px', padding: '18px 24px', borderBottom: '1px solid var(--theme-border)', alignItems: 'center', fontSize: '15px' }}>
-                {/* 등수 */}
-                <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
+            rankings.map((user, index) => (
+              <div
+                key={user.username || index}
+                style={{
+                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px',
+                  borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none',
+                  alignItems: 'center', transition: 'background 0.2s', cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <div style={{ fontWeight: '700' }}>
                   {user.rank <= 3 ? (
-                    <span style={{ fontSize: '18px', color: user.rank === 1 ? '#f1c40f' : user.rank === 2 ? '#95a5a6' : '#cd7f32' }}>
+                    <span style={{ color: user.rank === 1 ? '#ffd700' : user.rank === 2 ? '#c0c0c0' : '#cd7f32' }}>
                       {user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'} {user.rank}
                     </span>
                   ) : (
                     <span style={{ color: 'var(--theme-secondary-text)' }}>{user.rank}</span>
                   )}
                 </div>
-
-                {/* 유저 닉네임 + 티어 뱃지 */}
-                <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {user.username || '익명 랭커'}
-                  <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', backgroundColor: `${getColor(user.rankTitle)}20`, color: getColor(user.rankTitle), textTransform: 'uppercase' }}>
+                <div style={{ fontWeight: '500' }}>
+                  {user.username || '익명 유저'}
+                  {/* ⭕ 안전하게 변환된 색상 함수를 통해 티어 마크 적용 완료 */}
+                  <span style={{
+                    marginLeft: '8px',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    backgroundColor: `${getTierColor(user.rankTitle)}20`,
+                    color: getTierColor(user.rankTitle),
+                    textTransform: 'uppercase'
+                  }}>
                     {user.rankTitle}
                   </span>
                 </div>
-
-                {/* 점수 */}
-                <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>
-                  {(user.score || 0).toLocaleString()} XP
-                </div>
-
-                {/* 🔥 문제 푼 수 완벽 연동 */}
-                <div style={{ textAlign: 'center', color: 'var(--theme-text)', fontWeight: '500' }}>
-                  {user.solved || 0}개
-                </div>
-
-                {/* 레이팅 */}
-                <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>
-                  {user.rating || '-'}
-                </div>
-
-                {/* 스트릭 */}
+                <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
+                
+                {/* 🎯 [완벽 동기화] 문제 푼 수 출력부 */}
+                <div style={{ textAlign: 'center', color: 'var(--theme-text)' }}>{user.solved || 0}개</div>
+                
+                <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
                     🔥 {user.streak || 0}
@@ -2256,6 +2300,12 @@ const Ranking = () => {
               </div>
             ))
           )}
+        </div>
+
+        <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
+            ← 돌아가기
+          </Link>
         </div>
       </div>
     </div>
