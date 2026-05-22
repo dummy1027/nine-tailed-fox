@@ -34,7 +34,7 @@ const FUNC_KW = ['printf','scanf','main','if','while','for','switch','sizeof'];
 
 const highlightCode = (code) => {
   const tokens = [];
-  const re = /(\/\*[\s\S]*?\*\/|\/\/.*|#\w+|"[^"]*"|\b(int|char|float|double|void|if|else|for|while|return|include|define|stdio|stdlib|string|main)\b|\b\d+\b|[{}();])/g;
+  const re = /(\/\*[\s\S]*?\*\/|\/\/.*|#\w+|"(?:[^"\\]|\\.)*"|%(?:\.\d+)?[diufFeEgGxXoscpaAn]|'[^']*'|\b(int|char|float|double|void|if|else|for|while|return|include|define|stdio|stdlib|string|main)\b|\b\d+\b|[{}();])/g;
   let last = 0, m;
   while ((m = re.exec(code)) !== null) {
     if (m.index > last) tokens.push({ t: 'text', v: code.substring(last, m.index) });
@@ -42,6 +42,7 @@ const highlightCode = (code) => {
     if (v.startsWith('//') || v.startsWith('/*')) tokens.push({ t: 'comment', v });
     else if (v.startsWith('#')) tokens.push({ t: 'pre', v });
     else if (v.startsWith('"')) tokens.push({ t: 'str', v });
+    else if (v.startsWith('%')) tokens.push({ t: 'fmt', v });
     else if (['int','char','float','double','void','if','else','for','while','return'].includes(v)) tokens.push({ t: 'kw', v });
     else if (['include','define','stdio','stdlib','string','main'].includes(v)) tokens.push({ t: 'fn', v });
     else if (/\d+/.test(v)) tokens.push({ t: 'num', v });
@@ -52,15 +53,15 @@ const highlightCode = (code) => {
   return tokens;
 };
 
-const tokenColor = { comment: '#6b7280', pre: '#60a5fa', str: '#4ade80', kw: '#f472b6', fn: '#fbbf24', num: '#fb923c', punc: '#94a3b8', text: '#e2e8f0' };
+const tokenColor = { comment: '#6b7280', pre: '#60a5fa', str: '#4ade80', kw: '#f472b6', fn: '#fbbf24', num: '#fb923c', punc: '#94a3b8', fmt: '#38bdf8', text: '#e2e8f0' };
 
-/* ───────── 간이 C 실행 (printf 기반) ───────── */
+/* ───────── C 실행 시뮬레이터 ───────── */
 const simulateC = (code) => {
   const syntaxErrs = [];
   const lines = code.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i].trim();
-    if (!l || l.startsWith('//') || l.startsWith('/*') || l.startsWith('#') || l.endsWith('{') || l.endsWith('}') || l.endsWith(';'))  continue;
+    if (!l || l.startsWith('//') || l.startsWith('/*') || l.startsWith('#') || l.endsWith('{') || l.endsWith('}')) continue;
     if (/^(if|for|while|else|return|break|continue)/.test(l)) continue;
     if (/^\w+/.test(l) && !l.endsWith(';') && !l.endsWith('{')) {
       syntaxErrs.push(`[E2001] 세미콜론이 없습니다. (${i+1}번째 줄)`);
@@ -68,14 +69,131 @@ const simulateC = (code) => {
   }
   if (syntaxErrs.length) return { ok: false, output: syntaxErrs[0] };
 
-  // 모든 printf 추출
+  const varMap = {};
+  const varOrder = [];
   const outputs = [];
-  const printfRe = /printf\s*\(\s*"((?:[^"\\]|\\.)*)"/g;
+
+  const evalExpr = (expr) => {
+    expr = expr.trim();
+    if (/^-?\d+\.?\d*$/.test(expr)) return parseFloat(expr);
+    if (varMap[expr] !== undefined) return varMap[expr];
+    let m = expr.match(/^(.+?)([\+\-])(.+)$/);
+    if (m) {
+      const left = evalExpr(m[1]);
+      const right = evalExpr(m[3]);
+      return m[2] === '+' ? left + right : left - right;
+    }
+    m = expr.match(/^(.+?)([\*\/\%])(.+)$/);
+    if (m) {
+      const left = evalExpr(m[1]);
+      const right = evalExpr(m[3]);
+      if (m[2] === '*') return left * right;
+      if (m[2] === '/') return left / right;
+      return left % right;
+    }
+    return 0;
+  };
+
+  const processPrintf = (fmt, vals) => {
+    let txt = fmt.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    let idx = 0;
+    txt = txt.replace(/%(?:\.\d+)?[diufFeEgGxXoscpaAn]/g, () => {
+      if (idx < vals.length) {
+        const v = vals[idx++];
+        if (typeof v === 'number') {
+          if (txt.includes('f')) return v.toFixed(1);
+          return Math.round(v).toString();
+        }
+        return v.toString();
+      }
+      return '';
+    });
+    return txt;
+  };
+
+  // 변수 처리 줄별
+  code.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    const declMatch = trimmed.match(/^(?:int|float|double|char|long)\s+(\w+)\s*(?:=\s*(.+?))?\s*;$/);
+    if (declMatch) {
+      const varName = declMatch[1];
+      const val = declMatch[2] ? evalExpr(declMatch[2]) : Math.floor(Math.random() * 100);
+      varMap[varName] = val;
+      if (!varOrder.includes(varName)) varOrder.push(varName);
+      return;
+    }
+    const assignMatch = trimmed.match(/^(\w+)\s*=\s*(.+?)\s*;$/);
+    if (assignMatch && varMap[assignMatch[1]] !== undefined) {
+      varMap[assignMatch[1]] = evalExpr(assignMatch[2]);
+      return;
+    }
+  });
+
+  // for 루프
+  const forRe = /for\s*\(\s*int\s+(\w+)\s*=\s*(-?\d+)\s*;\s*(\w+)\s*([<>=!]+)\s*(-?\d+)\s*;\s*(\w+)\+\+\s*\)/g;
+  let forMatch;
+  let loopOutputs = [];
+  while ((forMatch = forRe.exec(code)) !== null) {
+    const loopVar = forMatch[1];
+    const start = parseInt(forMatch[2]);
+    const end = parseInt(forMatch[5]);
+    const afterFor = code.substring(code.indexOf(forMatch[0]) + forMatch[0].length);
+    const printfRe = /printf\s*\(\s*"((?:[^"\\]|\\.)*)"(?:,\s*([^)]+))?\s*\)/g;
+    const pm = printfRe.exec(afterFor);
+    if (pm) {
+      const fmt = pm[1];
+      const args = pm[2] ? pm[2].split(',').map(a => a.trim()) : [];
+      for (let i = start; i <= end; i++) {
+        varMap[loopVar] = i;
+        const vals = args.map(a => varMap[a] !== undefined ? varMap[a] : evalExpr(a));
+        loopOutputs.push(processPrintf(fmt, vals));
+      }
+    }
+  }
+
+  if (loopOutputs.length > 0) return { ok: true, output: loopOutputs.join('') };
+
+  // if/else
+  const ifRe = /if\s*\(\s*(.+?)\s*\)(?:\s*\{([^}]*)\})?\s*else\s*\{([^}]*)\}/g;
+  let ifMatch;
+  while ((ifMatch = ifRe.exec(code)) !== null) {
+    const cond = ifMatch[1];
+    const ifBody = ifMatch[2] || '';
+    const elseBody = ifMatch[3] || '';
+    const cmpMatch = cond.match(/(\w+)\s*([<>=!]+)\s*(\w+)/);
+    if (cmpMatch) {
+      const left = varMap[cmpMatch[1]] !== undefined ? varMap[cmpMatch[1]] : parseFloat(cmpMatch[1]);
+      const right = varMap[cmpMatch[3]] !== undefined ? varMap[cmpMatch[3]] : parseFloat(cmpMatch[3]);
+      let condTrue = false;
+      switch (cmpMatch[2]) {
+        case '==': condTrue = left === right; break;
+        case '!=': condTrue = left !== right; break;
+        case '<': condTrue = left < right; break;
+        case '>': condTrue = left > right; break;
+        case '<=': condTrue = left <= right; break;
+        case '>=': condTrue = left >= right; break;
+      }
+      const body = condTrue ? ifBody : elseBody;
+      const printfInBlock = body.match(/printf\s*\(\s*"((?:[^"\\]|\\.)*)"(?:,\s*([^)]+))?\s*\)/);
+      if (printfInBlock) {
+        const fmt = printfInBlock[1];
+        const args = printfInBlock[2] ? printfInBlock[2].split(',').map(a => a.trim()) : [];
+        const vals = args.map(a => varMap[a] !== undefined ? varMap[a] : evalExpr(a));
+        return { ok: true, output: processPrintf(fmt, vals) };
+      }
+    }
+  }
+
+  // 일반 printf
+  const printfRe = /printf\s*\(\s*"((?:[^"\\]|\\.)*)"(?:,\s*([^)]+))?\s*\)/g;
   let pm;
   while ((pm = printfRe.exec(code)) !== null) {
-    let txt = pm[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\n/g, '\n');
-    outputs.push(txt);
+    const fmt = pm[1];
+    const args = pm[2] ? pm[2].split(',').map(a => a.trim()) : [];
+    const vals = args.map(a => varMap[a] !== undefined ? varMap[a] : evalExpr(a));
+    outputs.push(processPrintf(fmt, vals));
   }
+
   if (outputs.length === 0) return { ok: false, output: '[E1002] printf 문을 찾을 수 없습니다.' };
   return { ok: true, output: outputs.join('') };
 };
@@ -112,6 +230,7 @@ export default function BattleArena() {
   const textareaRef = useRef(null);
   const preRef = useRef(null);
   const oppBotTimerRef = useRef(null);
+  const channelRef = useRef(null);
   const [suggestions, setSuggestions] = useState([]);
   const [suggestIndex, setSuggestIndex] = useState(0);
   const [showSuggest, setShowSuggest] = useState(false);
@@ -371,6 +490,7 @@ export default function BattleArena() {
 
   const handleCheck = () => {
     if (!problem) return;
+    if (isCorrect === true) return;
     setResultType('check');
     const result = simulateC(code);
     if (!result.ok) {
@@ -385,37 +505,34 @@ export default function BattleArena() {
     setOutput('');
 
     if (correct) {
-      // 상대에게 데미지
-      setOppHp(prev => {
-        const next = Math.max(0, prev - DAMAGE_PER_CORRECT);
-        triggerDamageAnim('opp');
-        if (next <= 0) {
-          setPhase('gameover');
-          setBattleResult('win');
-          // Realtime으로 상대에게 알림
-          if (channelRef.current) {
-            channelRef.current.send({ type: 'broadcast', event: 'gameover', payload: { winner: user?.id } });
-          }
-        }
-        return next;
-      });
+      const newOppHp = Math.max(0, oppHp - DAMAGE_PER_CORRECT);
+      triggerDamageAnim('opp');
+      setOppHp(newOppHp);
 
-      // Realtime 데미지 전송
+      if (newOppHp <= 0) {
+        setPhase('gameover');
+        setBattleResult('win');
+        if (channelRef.current) {
+          channelRef.current.send({ type: 'broadcast', event: 'gameover', payload: { winner: user?.id } });
+        }
+        return;
+      }
+
       if (channelRef.current) {
         channelRef.current.send({ type: 'broadcast', event: 'damage', payload: { from: user?.id, amount: DAMAGE_PER_CORRECT } });
       }
 
-      // 새 문제
+      setResultType(null);
       setProblemCount(c => c + 1);
+      const newUsed = [...usedIds, problem.originalId || problem.id];
+      const np = getRandomBattleProblem(newUsed);
+      setUsedIds(newUsed);
       setTimeout(() => {
-        const np = getRandomBattleProblem(usedIds);
         setProblem(np);
-        setUsedIds(prev => [...prev, np.originalId || np.id]);
         setCode(`#include <stdio.h>\n\nint main() {\n\n\treturn 0;\n}`);
         setOutput('');
         setIsCorrect(null);
-        setResultType(null);
-      }, 1200);
+      }, 50);
     }
   };
 
@@ -616,11 +733,12 @@ export default function BattleArena() {
             </div>
           </div>
           <div key={countdown} style={{
-            fontSize: countdown === 0 ? '3rem' : '6rem', fontWeight: 900,
+            fontSize: countdown === 0 ? '3rem' : '5rem', fontWeight: 900,
             fontFamily: "'Nunito', sans-serif",
             background: 'linear-gradient(135deg, #cb6ce6, #7c3aed)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            animation: 'countBounce 0.6s ease-out'
+            animation: 'countBounce 0.6s ease-out',
+            lineHeight: 1.2, padding: '20px'
           }}>
             {countdown === 0 ? 'FIGHT!' : countdown}
           </div>
@@ -771,7 +889,7 @@ export default function BattleArena() {
           )}
           {problem?.output && (
             <div style={{ marginTop: 6, padding: '8px 12px', borderRadius: 8, background: 'rgba(0,0,0,0.3)', fontSize: 13 }}>
-              <span style={{ color: '#8b8fa3' }}>기대 출력: </span><span style={{ color: '#fbbf24', fontFamily: 'monospace' }}>{problem.output.replace(/\\n/g, '↵')}</span>
+              <span style={{ color: '#8b8fa3' }}>기대 출력: </span><span style={{ color: '#fbbf24', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{problem.output.replace(/\\n/g, '\n')}</span>
             </div>
           )}
           {problem?.hint && (
