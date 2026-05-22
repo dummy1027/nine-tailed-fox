@@ -1418,7 +1418,7 @@ const ServerCard = ({ server, formatUptime }) => {
       )}
 
 
-      <div style={{ height: '100px' }}>
+      <div style={{ height: '100px', minWidth: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={server.history || []}>
             <defs>
@@ -1579,14 +1579,16 @@ webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18'
           gap: '24px',
           marginBottom: '24px',
         }}>
-          {servers.map((server) => (
-            <ServerCard key={server.name} server={server} formatUptime={formatUptime} />
+          {Object.values(dynamicServers)
+            .filter(s => s.name !== 'Server Web Pages')
+            .map((server) => (
+            <ServerCard key={server.name} server={{...server, history: realtimeHistory[server.name === 'API' ? 'api' : server.name === 'Media Proxy' ? 'mediaProxy' : 'gateway'] || []}} formatUptime={formatUptime} />
           ))}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '320px' }}>
-            <ServerCard server={webPages} formatUptime={formatUptime} />
+            <ServerCard server={{...dynamicServers.webPages, history: realtimeHistory.webPages || []}} formatUptime={formatUptime} />
           </div>
         </div>
 
