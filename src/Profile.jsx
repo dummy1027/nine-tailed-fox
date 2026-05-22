@@ -45,7 +45,7 @@ export default function Profile() {
           console.warn('Failed to load viewed profile with solved_problems column, falling back...', result.error.message);
           const fallback = await supabase
             .from('profiles')
-            .select('id, username, display_name, bio, created_at, solved_problems')
+            .select('id, username, display_name, bio, created_at, solved_problems, rating')
             .eq('display_name', queryUsername)
             .maybeSingle();
           data = fallback.data;
