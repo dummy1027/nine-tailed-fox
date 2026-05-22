@@ -560,7 +560,7 @@ export default function BattleArena() {
     return 0;
   };
 
-  const applyRatingChange = async (change) => {
+  const applyRatingChange = useCallback(async (change) => {
     if (!user || isDev || change === 0) return;
     const currentRating = profile?.rating ?? 0;
     const newRating = Math.max(0, currentRating + change);
@@ -568,7 +568,7 @@ export default function BattleArena() {
     if (!error && data && setProfile) {
       setProfile(prev => prev ? { ...prev, rating: data.rating } : prev);
     }
-  };
+  }, [user, isDev, profile, setProfile]);
 
   const finalizeBattle = useCallback(async (result) => {
     if (battleEndedRef.current) return;
@@ -578,7 +578,7 @@ export default function BattleArena() {
     const delta = getRatingDelta(result);
     setRatingChange(delta);
     await applyRatingChange(delta);
-  }, [isDev, user, profile, setProfile]);
+  }, [applyRatingChange]);
 
   /* ─── 채점 ─── */
   const handleRun = () => {
