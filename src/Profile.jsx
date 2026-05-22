@@ -18,7 +18,7 @@ export default function Profile() {
       // username 또는 display_name으로 프로필 검색 (게시물 작성자가 display_name으로 저장될 수 있으므로)
       let { data, error } = await supabase
         .from('profiles')
-        .select('id, username, display_name, bio, created_at, solved_problems')
+        .select('id, username, display_name, bio, created_at, solved_problems, rating')
         .eq('username', queryUsername)
         .maybeSingle();
 
@@ -26,7 +26,7 @@ export default function Profile() {
         console.warn('Failed to load viewed profile with solved_problems column, falling back...', error.message);
         const fallback = await supabase
           .from('profiles')
-          .select('id, username, display_name, bio, created_at, solved_problems')
+          .select('id, username, display_name, bio, created_at, solved_problems, rating')
           .eq('username', queryUsername)
           .maybeSingle();
         data = fallback.data;
@@ -36,7 +36,7 @@ export default function Profile() {
       if (!data) {
         let result = await supabase
           .from('profiles')
-          .select('id, username, display_name, bio, created_at, solved_problems')
+          .select('id, username, display_name, bio, created_at, solved_problems, rating')
           .eq('display_name', queryUsername)
           .maybeSingle();
         data = result.data;
@@ -45,7 +45,7 @@ export default function Profile() {
           console.warn('Failed to load viewed profile with solved_problems column, falling back...', result.error.message);
           const fallback = await supabase
             .from('profiles')
-            .select('id, username, display_name, bio, created_at, solved_problems')
+            .select('id, username, display_name, bio, created_at, solved_problems, rating')
             .eq('display_name', queryUsername)
             .maybeSingle();
           data = fallback.data;
@@ -206,7 +206,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
           <div style={{
             background: 'var(--theme-surface)',
             borderRadius: '16px',
@@ -228,15 +228,25 @@ export default function Profile() {
             <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>댓글</div>
           </div>
           <div style={{
-              background: 'var(--theme-surface)',
-              borderRadius: '16px',
-              padding: '25px',
-              textAlign: 'center',
-              border: '1px solid var(--theme-border)'
-            }}>
+            background: 'var(--theme-surface)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            border: '1px solid var(--theme-border)'
+          }}>
             <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{displaySolvedCount}</div>
             <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>해결한 문제</div>
-            </div>
+          </div>
+          <div style={{
+            background: 'var(--theme-surface)',
+            borderRadius: '16px',
+            padding: '25px',
+            textAlign: 'center',
+            border: '1px solid var(--theme-border)'
+          }}>
+            <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--tesla-blue)' }}>{displayProfile?.rating ?? 0}</div>
+            <div style={{ color: 'var(--theme-secondary-text)', marginTop: '5px' }}>레이팅</div>
+          </div>
         </div>
 
         {isOwnProfile && (

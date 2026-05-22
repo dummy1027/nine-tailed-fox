@@ -1128,10 +1128,11 @@ const Ranking = () => {
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
     try {
+      const orderField = sortBy === 'rating' ? 'rating' : 'score';
       let query = supabase
         .from('profiles')
         .select('username, score, solved_problems, rating, streak')
-        .order('score', { ascending: false });
+        .order(orderField, { ascending: false });
 
       if (searchWord.trim() !== '') {
         query = query.ilike('username', `%${searchWord}%`);
@@ -1156,7 +1157,7 @@ const Ranking = () => {
 
   useEffect(() => {
     fetchRankingData(searchQuery);
-  }, [searchQuery]);
+  }, [searchQuery, sortBy]);
 
   const getTierColor = (title) => {
     const key = title ? title.toLowerCase() : 'beginner';
@@ -1473,36 +1474,10 @@ const ServerStatus = () => {
     api: { name: 'API', status: 'online', latency: 42, cpu: '0.85', memory: { used: 512, total: 8192, percent: '6.25' }, uptime: 86400 * 5 },
     mediaProxy: { name: 'Media Proxy', status: 'online', latency: 78, cpu: '0.42', memory: { used: 2048, total: 4096, percent: '50.0' }, uptime: 86400 * 2 },
     gateway: { name: 'Gateway', status: 'online', latency: 156, cpu: '0.31', memory: { used: 1024, total: 2048, percent: '45.0' }, uptime: 86400 * 12 },
-    webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18', memory: { used: 1536, total: 4096, percent: '37.5' }, uptime: 86400 * 30 }
+webPages: { name: 'Server Web Pages', status: 'online', latency: 12, cpu: '0.18', memory: { used: 1536, total: 4096, percent: '37.5' }, uptime: 86400 * 30 }
   });
 
   useEffect(() => {
-    // 1. 처음 로딩 시 DB에서 데이터 가져오기
-    const fetchInitialStatus = async () => {
-      // 수정: rooms 테이블을 사용하고, 존재하는 컬럼만 필터링
-const { data } = await supabase.from('rooms').select('*').eq('room_code', generatedCode);
-      if (data) {
-        const newServers = {};
-        data.forEach(s => {
-          newServers[s.id] = {
-            name: s.name,
-            status: s.status,
-            latency: s.latency,
-            cpu: s.cpu,
-            memory: { 
-              used: s.memory_used, 
-              total: s.memory_total, 
-              percent: ((s.memory_used / s.memory_total) * 100).toFixed(1) 
-            },
-            uptime: s.uptime
-          };
-        });
-        setDynamicServers(prev => ({ ...prev, ...newServers }));
-      }
-    };
-    fetchInitialStatus();
-
-    // 2. Supabase 실시간 구독 설정
     const subscription = supabase
       .channel('server_updates')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'servers_status' }, (payload) => {
@@ -1542,9 +1517,9 @@ const { data } = await supabase.from('rooms').select('*').eq('room_code', genera
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []); // 👈 깔끔하게 하나로 끝냄
+  }, []);
 
-   const formatUptime = (seconds) => {
+  const formatUptime = (seconds) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -1553,32 +1528,7 @@ const { data } = await supabase.from('rooms').select('*').eq('room_code', genera
     return `${mins}분`;
   };
 
-  const servers = [
-    { ...dynamicServers.api, history: realtimeHistory.api },
-    { ...dynamicServers.mediaProxy, history: realtimeHistory.mediaProxy },
-    { ...dynamicServers.gateway, history: realtimeHistory.gateway }
-  ];
-
-  const webPages = { ...dynamicServers.webPages, history: realtimeHistory.webPages };
-
-class ServerStatusErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  render() {
-    if (this.state.hasError) {
-      return <div style={{ color: 'red', padding: '50px' }}><h1>Error in ServerStatus</h1><pre>{this.state.error.toString()}</pre><pre>{this.state.error.stack}</pre></div>;
-    }
-    return this.props.children;
-  }
-}
-
   return (
-    <ServerStatusErrorBoundary>
     <div style={{
       minHeight: '100vh',
       backgroundColor: 'var(--theme-bg)',
@@ -1647,7 +1597,6 @@ class ServerStatusErrorBoundary extends React.Component {
         </div>
       </div>
     </div>
-    </ServerStatusErrorBoundary>
   );
 };
 
