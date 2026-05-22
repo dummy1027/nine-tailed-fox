@@ -200,7 +200,7 @@ const simulateC = (code) => {
 
 /* ───────── 컴포넌트 ───────── */
 export default function BattleArena() {
-  const { user, profile } = useAuth();
+  const { user, profile, setProfile } = useAuth();
   const navigate = useNavigate();
   const isDev = import.meta.env.DEV;
 
@@ -227,8 +227,10 @@ export default function BattleArena() {
   const [isCorrect, setIsCorrect] = useState(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [battleResult, setBattleResult] = useState(null); // 'win' | 'lose' | 'draw'
+  const [ratingChange, setRatingChange] = useState(0);
   const [damageAnim, setDamageAnim] = useState({ my: false, opp: false });
   const [problemCount, setProblemCount] = useState(0);
+  const battleEndedRef = useRef(false);
   const [exitConfirm, setExitConfirm] = useState(false);
   const [pendingNavigate, setPendingNavigate] = useState(null);
   const mirrorRef = useRef(null);
@@ -461,8 +463,8 @@ export default function BattleArena() {
             const next = Math.max(0, prev - payload.payload.amount);
             triggerDamageAnim('my');
             if (next <= 0) {
-              setPhase('gameover');
-              setBattleResult('lose');
+              const result = oppHpRef.current <= 0 ? 'draw' : 'lose';
+              finalizeBattle(result);
             }
             return next;
           });
@@ -511,16 +513,15 @@ export default function BattleArena() {
       setBattleTime(prev => {
         if (prev <= 1) {
           clearInterval(iv);
-          setPhase('gameover');
           const result = myHpRef.current > oppHpRef.current ? 'win' : myHpRef.current < oppHpRef.current ? 'lose' : 'draw';
-          setBattleResult(result);
+          finalizeBattle(result);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(iv);
-  }, [phase]);
+  }, [phase, finalizeBattle]);
 
   /* ─── 봇 자동 풀이 (랜덤 타이밍) ─── */
   useEffect(() => {
@@ -553,6 +554,32 @@ export default function BattleArena() {
     setTimeout(() => setDamageAnim(prev => ({ ...prev, [who]: false })), 600);
   };
 
+  const getRatingDelta = (result) => {
+    if (result === 'win') return Math.floor(myHpRef.current / 2);
+    if (result === 'lose') return -(MAX_HP - myHpRef.current);
+    return 0;
+  };
+
+  const applyRatingChange = async (change) => {
+    if (!user || isDev || change === 0) return;
+    const currentRating = profile?.rating ?? 0;
+    const newRating = Math.max(0, currentRating + change);
+    const { data, error } = await supabase.from('profiles').update({ rating: newRating }).eq('id', user.id).select('rating').maybeSingle();
+    if (!error && data && setProfile) {
+      setProfile(prev => prev ? { ...prev, rating: data.rating } : prev);
+    }
+  };
+
+  const finalizeBattle = useCallback(async (result) => {
+    if (battleEndedRef.current) return;
+    battleEndedRef.current = true;
+    setPhase('gameover');
+    setBattleResult(result);
+    const delta = getRatingDelta(result);
+    setRatingChange(delta);
+    await applyRatingChange(delta);
+  }, [isDev, user, profile, setProfile]);
+
   /* ─── 채점 ─── */
   const handleRun = () => {
     setResultType('run');
@@ -561,7 +588,7 @@ export default function BattleArena() {
     setIsCorrect(null);
   };
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
     if (!problem) return;
     if (isCorrect === true) return;
     setResultType('check');
@@ -583,8 +610,8 @@ export default function BattleArena() {
       setOppHp(newOppHp);
 
       if (newOppHp <= 0) {
-        setPhase('gameover');
-        setBattleResult('win');
+        const result = myHpRef.current <= 0 ? 'draw' : 'win';
+        await finalizeBattle(result);
         if (channelRef.current) {
           channelRef.current.send({ type: 'broadcast', event: 'gameover', payload: { winner: user?.id } });
         }
@@ -619,7 +646,15 @@ export default function BattleArena() {
   /* ─── 나가기 ─── */
   const handleLeaveBattle = useCallback(async (confirmed = false) => {
     if (phase === 'battle' && !confirmed) {
-      setShowLeaveModal(true);
+      clearTimeout(oppBotTimerRef.current);
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      if (!isDev && user) {
+        await supabase.from('battle_queue').delete().eq('user_id', user.id);
+      }
+      setShowLeaveModal(false);
+      setExitConfirm(false);
+      setPhase('gameover');
+      setBattleResult('lose');
       return;
     }
     clearTimeout(oppBotTimerRef.current);
@@ -632,10 +667,9 @@ export default function BattleArena() {
     navigate('/ranking');
   }, [user, isDev, navigate, phase]);
 
-  const handleForfeitAndLeave = () => {
+  const handleForfeitAndLeave = async () => {
     if (phase === 'battle') {
-      setPhase('gameover');
-      setBattleResult('lose');
+      await finalizeBattle('lose');
     }
     setShowLeaveModal(false);
     setExitConfirm(false);
@@ -847,6 +881,7 @@ export default function BattleArena() {
   if (phase === 'gameover') {
     const isWin = battleResult === 'win';
     const isDraw = battleResult === 'draw';
+    const ratingLabel = ratingChange === 0 ? '레이팅 변동 없음' : `${ratingChange > 0 ? '+' : ''}${ratingChange}`;
     return (
       <div style={styles.fullPage}>
         <style>{`
@@ -884,6 +919,7 @@ export default function BattleArena() {
               <p style={{ fontSize: 24, fontWeight: 800, color: '#cb6ce6' }}>{problemCount}</p>
             </div>
           </div>
+          <p style={{ color: isWin ? '#2ecc71' : isDraw ? '#f39c12' : '#e74c3c', fontSize: 16, marginBottom: 20, fontWeight: 700 }}>{ratingLabel}</p>
           <button onClick={() => navigate('/ranking')} style={{
             padding: '14px 40px', borderRadius: 12, border: 'none', cursor: 'pointer',
             fontWeight: 700, fontSize: 16, color: 'white',

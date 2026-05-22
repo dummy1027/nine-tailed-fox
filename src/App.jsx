@@ -1128,10 +1128,11 @@ const Ranking = () => {
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
     try {
+      const orderField = sortBy === 'rating' ? 'rating' : 'score';
       let query = supabase
         .from('profiles')
         .select('username, score, solved_problems, rating, streak')
-        .order('score', { ascending: false });
+        .order(orderField, { ascending: false });
 
       if (searchWord.trim() !== '') {
         query = query.ilike('username', `%${searchWord}%`);
@@ -1156,7 +1157,7 @@ const Ranking = () => {
 
   useEffect(() => {
     fetchRankingData(searchQuery);
-  }, [searchQuery]);
+  }, [searchQuery, sortBy]);
 
   const getTierColor = (title) => {
     const key = title ? title.toLowerCase() : 'beginner';

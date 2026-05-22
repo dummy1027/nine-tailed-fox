@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
     try {
       let { data, error } = await supabase
         .from('profiles')
-        .select('id, username, display_name, bio, solved_problems')
+        .select('id, username, display_name, bio, solved_problems, score, rating')
         .eq('id', userId)
         .maybeSingle();
 
@@ -93,7 +93,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user || null, profile, loading, signup, login, logout }}>
+    <AuthContext.Provider value={{ session, user: session?.user || null, profile, setProfile, loading, signup, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
