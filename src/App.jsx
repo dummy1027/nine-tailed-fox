@@ -2094,6 +2094,7 @@ const Workbook = () => {
   );
 };
 
+// ⭕ App.jsx의 const Ranking 시작부터 끝나는 구역까지만 찾아서 덮어쓰기 하세요!
 // 1️⃣ 컴포넌트 바깥 세상(윗줄)에 상수를 먼저 똭! 선언해 둡니다.
 const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
 const RANK_COLORS = {
@@ -2106,12 +2107,21 @@ const RANK_COLORS = {
 
 // 2️⃣ 그 다음에 컴포넌트가 시작되어야 위에서 상수를 안전하게 가져다 씁니다!
 const Ranking = () => {
+  // 🎯 자바스크립트 순서(TDZ) 억까를 막기 위해 함수 내부 최상단에 상수를 박아버렸습니다!
+  const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
+  const RANK_COLORS = {
+    beginner: '#95a5a6',
+    veteran: '#3498db',
+    expert: '#9b59b6',
+    master: '#f39c12',
+    grandmaster: '#e74c3c'
+  };
+
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 점수에 따른 티어 칭호 (정확히 소문자로 매칭하여 상수의 key와 일치시킴)
   const getRank = (score) => {
     if (score < 100) return 'beginner';
     if (score < 300) return 'veteran';
@@ -2120,11 +2130,9 @@ const Ranking = () => {
     return 'grandmaster';
   };
 
-  // 실시간 데이터 Fetch 함수
   const fetchRankingData = async (searchWord = '') => {
     setLoading(true);
     try {
-      // 1. Supabase에서 문제 푼 수(solved)를 포함해 정상 Select
       let query = supabase
         .from('profiles')
         .select('username, score, solved, rating, streak')
@@ -2137,7 +2145,6 @@ const Ranking = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      // 2. 등수 및 티어 칭호 부여
       const calculatedRank = data.map((user, index) => ({
         rank: index + 1,
         rankTitle: getRank(user.score || 0),
@@ -2156,10 +2163,9 @@ const Ranking = () => {
     fetchRankingData(searchQuery);
   }, [searchQuery]);
 
-  // 대소문자 억까 방어용 안전 벨트 함수 (RANK_COLORS 매칭 실패 방지)
   const getTierColor = (title) => {
     const key = title ? title.toLowerCase() : 'beginner';
-    return RANK_COLORS[key] || '#95a5a6'; // 매칭 실패 시 기본 beginner 색상 부여
+    return RANK_COLORS[key] || '#95a5a6';
   };
 
   return (
@@ -2172,38 +2178,13 @@ const Ranking = () => {
           다른 사용자들과 점수를 비교하고 순위를 확인하세요!
         </p>
 
-        {/* 배틀 입장 메뉴 버튼 영역 */}
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
-          <button 
-            style={{
-              flex: 1, padding: '15px 25px', borderRadius: '12px',
-              background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
-              border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
-            }}
-            onClick={() => navigate('/battle-arena')} // 👈 방금 만든 배틀 아레나 라우터 연결!
-          >
-            🎲 무작위 배틀
-          </button>
-          <button style={{
-            flex: 1, padding: '15px 25px', borderRadius: '12px',
-            background: 'linear-gradient(135deg, #004aad 0%, #cb6ce6 100%)',
-            border: 'none', color: 'white', fontSize: '16px', fontWeight: '600',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0, 74, 173, 0.3)'
-          }} onClick={() => navigate('/private-battle')}>
-            🔒 비공개 배틀
-          </button>
-        </div>
-
         {/* 상단 티어 가이드라인 안내 바 */}
         <div style={{
           display: 'flex', gap: '12px', marginBottom: '30px', padding: '14px 20px',
           backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)',
           justifyContent: 'center', flexWrap: 'wrap'
         }}>
-          {RANK_ORDER.map((rank, i) => (
+          {RANK_ORDER.map((rank) => (
             <div key={rank} style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px',
               backgroundColor: `${RANK_COLORS[rank]}15`, borderRadius: '8px', border: `1px solid ${RANK_COLORS[rank]}40`
@@ -2215,7 +2196,7 @@ const Ranking = () => {
                 {rank}
               </span>
               <span style={{ fontSize: '12px', color: 'var(--theme-secondary-text)' }}>
-                {i === 0 ? '0' : i === 1 ? '100' : i === 2 ? '300' : i === 3 ? '600' : '1000'}+
+                {rank === 'beginner' ? '0' : rank === 'veteran' ? '100' : rank === 'expert' ? '300' : rank === 'master' ? '600' : '1000'}+
               </span>
             </div>
           ))}
@@ -2231,14 +2212,9 @@ const Ranking = () => {
             style={{
               width: '100%', padding: '14px 20px', fontSize: '15px', borderRadius: '12px',
               backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)',
-              color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s'
+              color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box'
             }}
           />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--theme-secondary-text)', cursor: 'pointer', fontSize: '14px' }}>
-              초기화
-            </button>
-          )}
         </div>
 
         {/* 실시간 리스트 렌더링 영역 */}
@@ -2253,24 +2229,17 @@ const Ranking = () => {
           </div>
 
           {loading ? (
-            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
-              유저 정보를 조회하는 중... 🚀
-            </div>
+            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>유저 정보를 조회하는 중... 🚀</div>
           ) : rankings.length === 0 ? (
-            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '16px' }}>
-              {searchQuery ? `"${searchQuery}" 유저를 찾을 수 없습니다 ˃ ˄ ˂` : "아직 해결한 사람들이 없어요 ˃ ˄ ˂"}
-            </div>
+            <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>랭커가 존재하지 않습니다.</div>
           ) : (
             rankings.map((user, index) => (
               <div
                 key={user.username || index}
                 style={{
                   display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px',
-                  borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none',
-                  alignItems: 'center', transition: 'background 0.2s', cursor: 'pointer',
+                  borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none', alignItems: 'center'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--theme-bg)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <div style={{ fontWeight: '700' }}>
                   {user.rank <= 3 ? (
@@ -2283,25 +2252,15 @@ const Ranking = () => {
                 </div>
                 <div style={{ fontWeight: '500' }}>
                   {user.username || '익명 유저'}
-                  {/* ⭕ 안전하게 변환된 색상 함수를 통해 티어 마크 적용 완료 */}
                   <span style={{
-                    marginLeft: '8px',
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    backgroundColor: `${getTierColor(user.rankTitle)}20`,
-                    color: getTierColor(user.rankTitle),
-                    textTransform: 'uppercase'
+                    marginLeft: '8px', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600',
+                    backgroundColor: `${getTierColor(user.rankTitle)}20`, color: getTierColor(user.rankTitle), textTransform: 'uppercase'
                   }}>
                     {user.rankTitle}
                   </span>
                 </div>
                 <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
-                
-                {/* 🎯 [완벽 동기화] 문제 푼 수 출력부 */}
                 <div style={{ textAlign: 'center', color: 'var(--theme-text)' }}>{user.solved || 0}개</div>
-                
                 <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
                 <div style={{ textAlign: 'center' }}>
                   <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
@@ -2314,22 +2273,16 @@ const Ranking = () => {
         </div>
 
         <div style={{ marginTop: '40px', textAlign: 'center' }}>
-          <Link to="/" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
-            ← 돌아가기
-          </Link>
+          <span 
+            onClick={() => navigate('/')} 
+            style={{ color: '#3498db', cursor: 'pointer', fontSize: '16px', fontWeight: '500', textDecoration: 'underline' }}
+          >
+            ← 메인 화면으로 돌아가기
+          </span>
         </div>
       </div>
     </div>
   );
-};
-
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, CheckCircle2, XCircle, Clock, Image, Globe, Monitor } from 'lucide-react';
-
-const statusConfig = {
-  online: { color: '#23a559', icon: CheckCircle2, label: 'Operational' },
-  offline: { color: '#ed4245', icon: XCircle, label: 'Outage' },
-  degraded: { color: '#f0b232', icon: Clock, label: 'Degraded' },
 };
 
 const ServerCard = ({ server, formatUptime }) => {
