@@ -1114,6 +1114,7 @@ const Ranking = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [rankings, setRankings] = useState([]);
+  const [sortBy, setSortBy] = useState('rating');
   const [loading, setLoading] = useState(false);
 
   const getRank = (score) => {
@@ -1129,7 +1130,7 @@ const Ranking = () => {
     try {
       let query = supabase
         .from('profiles')
-        .select('username, score, solved, rating, streak')
+        .select('username, score, solved_problems, rating, streak')
         .order('score', { ascending: false });
 
       if (searchWord.trim() !== '') {
@@ -1262,15 +1263,40 @@ const Ranking = () => {
           />
         </div>
 
+        {/* 정렬 버튼들 */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+          <button
+            onClick={() => setSortBy('solved')}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              fontSize: '13px', fontWeight: '600',
+              backgroundColor: sortBy === 'solved' ? '#cb6ce6' : 'var(--theme-surface)',
+              color: sortBy === 'solved' ? 'white' : 'var(--theme-text)'
+            }}
+          >
+            🏆 문제 푼수
+          </button>
+          <button
+            onClick={() => setSortBy('rating')}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              fontSize: '13px', fontWeight: '600',
+              backgroundColor: sortBy === 'rating' ? '#f39c12' : 'var(--theme-surface)',
+              color: sortBy === 'rating' ? 'white' : 'var(--theme-text)'
+            }}
+          >
+            ⭐ 레이팅
+          </button>
+        </div>
+
         {/* 랭킹 메인 테이블 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
             <div>Rank</div>
             <div>User</div>
             <div style={{ textAlign: 'center' }}>Score</div>
             <div style={{ textAlign: 'center' }}>Solved</div>
             <div style={{ textAlign: 'center' }}>Rating</div>
-            <div style={{ textAlign: 'center' }}>Streak</div>
           </div>
 
           {loading ? (
@@ -1278,21 +1304,24 @@ const Ranking = () => {
           ) : rankings.length === 0 ? (
             <div style={{ padding: '100px', textAlign: 'center', color: 'var(--theme-secondary-text)' }}>랭커가 존재하지 않습니다.</div>
           ) : (
-            rankings.map((user, index) => (
+            rankings.slice().sort((a, b) => {
+              if (sortBy === 'solved') return (b.solved_problems?.length || 0) - (a.solved_problems?.length || 0);
+              return (b.rating || 0) - (a.rating || 0);
+            }).map((user, index) => (
               <div
                 key={user.username || index}
                 style={{
-                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px',
+                  display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px', padding: '16px 20px',
                   borderBottom: index < rankings.length - 1 ? '1px solid var(--theme-border)' : 'none', alignItems: 'center'
                 }}
               >
                 <div style={{ fontWeight: '700' }}>
-                  {user.rank <= 3 ? (
-                    <span style={{ color: user.rank === 1 ? '#ffd700' : user.rank === 2 ? '#c0c0c0' : '#cd7f32' }}>
-                      {user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'} {user.rank}
+                  {index + 1 <= 3 ? (
+                    <span style={{ color: index + 1 === 1 ? '#ffd700' : index + 1 === 2 ? '#c0c0c0' : '#cd7f32' }}>
+                      {index + 1 === 1 ? '🥇' : index + 1 === 2 ? '🥈' : '🥉'} {index + 1}
                     </span>
                   ) : (
-                    <span style={{ color: 'var(--theme-secondary-text)' }}>{user.rank}</span>
+                    <span style={{ color: 'var(--theme-secondary-text)' }}>{index + 1}</span>
                   )}
                 </div>
                 <div style={{ fontWeight: '500' }}>
@@ -1305,13 +1334,8 @@ const Ranking = () => {
                   </span>
                 </div>
                 <div style={{ textAlign: 'center', color: '#cb6ce6', fontWeight: '600' }}>{(user.score || 0).toLocaleString()}</div>
-                <div style={{ textAlign: 'center', color: 'var(--theme-text)' }}>{user.solved || 0}개</div>
+                <div style={{ textAlign: 'center', color: 'var(--theme-text)' }}>{user.solved_problems?.length || 0}개</div>
                 <div style={{ textAlign: 'center', color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</div>
-                <div style={{ textAlign: 'center' }}>
-                  <span style={{ backgroundColor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
-                    🔥 {user.streak || 0}
-                  </span>
-                </div>
               </div>
             ))
           )}
@@ -1627,10 +1651,16 @@ class ServerStatusErrorBoundary extends React.Component {
 };
 
 const PrivateBattle = () => {
+  // 🎯 페이지 이동을 위한 리액트 라우터 훅 추가
+  const navigate = useNavigate();
+
   const [rooms, setRooms] = useState([]);
   const [view, setView] = useState('list'); // 'list' 또는 'created'
   const [generatedCode, setGeneratedCode] = useState('');
   const [isReady, setIsReady] = useState(false);
+  
+  // 🎯 사용자가 입력하는 입장 코드를 추적하기 위한 상태값 추가
+  const [inputCode, setInputCode] = useState('');
 
   const handleCreateRoom = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -1642,51 +1672,123 @@ const PrivateBattle = () => {
     setView('created');
   };
 
+  // 🎯 [방장 입장] 대기실에서 매치 시작하거나 준비 후 게임룸 진입할 때 호출
+  const handleStartBattle = () => {
+    if (!generatedCode) return;
+    // 주소창에 ?room=ABCDEF&mode=host 형식으로 코드를 실어서 친구가 만들고 있는 배틀 아레나로 이동합니다.
+    navigate(`/battle-arena?room=${generatedCode}&mode=host`);
+  };
+
+  // 🎯 [참여자 입장] 코드를 입력하고 방 참여하기를 눌렀을 때 호출
+  const handleJoinRoom = () => {
+    if (inputCode.trim().length !== 6) {
+      alert('6자리 코드를 정확히 입력해주세요!');
+      return;
+    }
+    // 주소창에 ?room=코드를 실어서 배틀 아레나로 게스트 입장시킵니다.
+    navigate(`/battle-arena?room=${inputCode.toUpperCase()}&mode=guest`);
+  };
+
   // 1. 방 생성 후 대기 화면 (참여자 목록 표 포함)
   if (view === 'created') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
-        <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center', backgroundColor: 'var(--theme-surface)', padding: '40px', borderRadius: '24px', border: '1px solid var(--theme-border)' }}>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: '800', marginBottom: '8px' }}>전투 대기실</h2>
-          <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '25px' }}>친구에게 아래 코드를 공유하세요</p>
+        <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center', backgroundColor: 'var(--theme-surface)', padding: '40px', borderRadius: '24px', border: '1px solid var(--theme-border)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '8px' }} className="text-gradient">전투 대기실</h2>
+          <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '25px', fontSize: '15px' }}>친구에게 아래 코드를 공유하세요</p>
           
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '2px dashed var(--tesla-blue)', marginBottom: '35px', display: 'inline-block', minWidth: '250px' }}>
-            <span style={{ fontSize: '40px', fontWeight: '900', letterSpacing: '8px', color: 'var(--tesla-blue)' }}>{generatedCode}</span>
+          {/* 방 코드 박스 */}
+          <div style={{ 
+            background: 'linear-gradient(var(--theme-surface), var(--theme-surface)) padding-box, linear-gradient(135deg, #cb6ce6, #38b6ff) border-box',
+            border: '3px dashed transparent',
+            padding: '20px', 
+            borderRadius: '16px', 
+            marginBottom: '35px', 
+            display: 'inline-block', 
+            minWidth: '280px',
+            boxShadow: '0 4px 20px rgba(203, 108, 230, 0.15)'
+          }}>
+            <span style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '8px', color: '#cb6ce6' }}>{generatedCode}</span>
           </div>
 
           {/* 참여자 목록 표 */}
           <div style={{ marginTop: '20px', textAlign: 'left' }}>
-            <h3 style={{ fontSize: '16px', marginBottom: '12px', color: 'var(--theme-text)' }}>참여자 목록 (1/2)</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'var(--theme-bg)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--theme-border)' }}>
+            <h3 style={{ fontSize: '16px', marginBottom: '12px', fontWeight: '600', color: 'var(--theme-text)' }}>참여자 목록 (1/2)</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'var(--theme-bg)', borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--theme-border)' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--theme-surface)', borderBottom: '1px solid var(--theme-border)' }}>
-                  <th style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'left' }}>플레이어</th>
-                  <th style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'right' }}>상태</th>
+                  <th style={{ padding: '14px 18px', fontSize: '14px', textAlign: 'left', color: 'var(--theme-secondary-text)', fontWeight: '600' }}>플레이어</th>
+                  <th style={{ padding: '14px 18px', fontSize: '14px', textAlign: 'right', color: 'var(--theme-secondary-text)', fontWeight: '600' }}>상태</th>
                 </tr>
               </thead>
               <tbody>
                 <tr style={{ borderBottom: '1px solid var(--theme-border)' }}>
-                  <td style={{ padding: '12px 15px', fontSize: '14px' }}>나 (방장)</td>
-                  <td style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'right', color: isReady ? '#2ecc71' : '#f39c12', fontWeight: '600' }}>{isReady ? '준비 완료' : '대기 중'}</td>
+                  <td style={{ padding: '14px 18px', fontSize: '14px', fontWeight: '500' }}>나 (방장)</td>
+                  <td style={{ padding: '14px 18px', fontSize: '14px', textAlign: 'right', color: isReady ? '#2ecc71' : '#f39c12', fontWeight: '700' }}>
+                    {isReady ? '✓ 준비 완료' : '● 대기 중'}
+                  </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '12px 15px', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>대기 중...</td>
-                  <td style={{ padding: '12px 15px', fontSize: '14px', textAlign: 'right', color: 'var(--theme-secondary-text)' }}>-</td>
+                  <td style={{ padding: '14px 18px', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>대기 중...</td>
+                  <td style={{ padding: '14px 18px', fontSize: '14px', textAlign: 'right', color: 'var(--theme-secondary-text)' }}>-</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '30px' }}>
+          {/* 제어 버튼 세트 */}
+          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '40px' }}>
             <button 
               onClick={() => setIsReady(!isReady)}
-              style={{ padding: '12px 25px', borderRadius: '10px', backgroundColor: isReady ? '#2ecc71' : '#f39c12', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+              style={{ 
+                padding: '14px 35px', 
+                borderRadius: '12px', 
+                backgroundColor: isReady ? '#2ecc71' : '#f39c12', 
+                border: 'none', 
+                color: 'white', 
+                fontSize: '15px',
+                fontWeight: '700', 
+                cursor: 'pointer',
+                boxShadow: isReady ? '0 4px 12px rgba(46,204,113,0.2)' : '0 4px 12px rgba(243,156,18,0.2)',
+                transition: 'all 0.2s ease'
+              }}
             >
               {isReady ? '✓ 준비완료' : '준비하기'}
             </button>
+            
+            {/* 🎯 [추가] 준비 완료되면 배틀룸으로 바로 진입할 수 있는 입장 액션 연결 */}
+            <button 
+              onClick={handleStartBattle}
+              className="btn paradox-bg"
+              style={{ 
+                padding: '14px 35px', 
+                borderRadius: '12px', 
+                border: 'none', 
+                color: 'white', 
+                fontSize: '15px',
+                fontWeight: '700', 
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(203, 108, 230, 0.25)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              ⚔️ 경기장 입장
+            </button>
+
             <button 
               onClick={() => setView('list')}
-              style={{ padding: '12px 25px', borderRadius: '10px', backgroundColor: '#ff4b4b', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+              style={{ 
+                padding: '14px 35px', 
+                borderRadius: '12px', 
+                backgroundColor: '#e74c3c', 
+                border: 'none', 
+                color: 'white', 
+                fontSize: '15px',
+                fontWeight: '700', 
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(231,76,60,0.2)',
+                transition: 'all 0.2s ease'
+              }}
             >
               방 닫기
             </button>
@@ -1700,54 +1802,95 @@ const PrivateBattle = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', padding: '100px 20px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: '800' }} className="text-gradient">비공개 배틀</h1>
-        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '30px' }}>함께할 친구를 찾거나 방을 만드세요.</p>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px' }} className="text-gradient">비공개 배틀</h1>
+        <p style={{ color: 'var(--theme-secondary-text)', marginBottom: '35px', fontSize: '16px' }}>함께할 친구를 찾거나 방을 만드세요.</p>
 
-        <div style={{ display: 'flex', gap: '25px', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: '25px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
           {/* 방 목록 */}
-          <div style={{ flex: 1.5, backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
-            <div style={{ padding: '15px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px' }}>참여 가능한 방</div>
-            <div style={{ padding: '50px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>아직 생성된 방이 없어요</div>
+          <div style={{ flex: 1.5, minWidth: '300px', backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+            <div style={{ padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '15px', color: 'var(--theme-secondary-text)' }}>참여 가능한 방</div>
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--theme-secondary-text)', fontSize: '14px' }}>아직 생성된 방이 없어요</div>
           </div>
 
           {/* 참여/생성 버튼 섹션 */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 방 생성 버튼 */}
             <button 
               onClick={handleCreateRoom}
-              style={{ padding: '15px', borderRadius: '12px', backgroundColor: '#2ecc71', border: 'none', color: 'white', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(46, 204, 113, 0.2)' }}
+              className="btn paradox-bg"
+              style={{ 
+                padding: '16px', 
+                borderRadius: '12px', 
+                border: 'none', 
+                color: 'white', 
+                fontSize: '16px',
+                fontWeight: '700', 
+                cursor: 'pointer', 
+                boxShadow: '0 4px 15px rgba(203, 108, 230, 0.25)',
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
               ➕ 새로운 방 생성
             </button>
 
             {/* 코드 입력 참여 섹션 */}
-            <div style={{ backgroundColor: 'var(--theme-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--theme-border)', textAlign: 'center' }}>
-              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--theme-secondary-text)', display: 'block', marginBottom: '12px' }}>입장 코드로 참여</span>
+            <div style={{ backgroundColor: 'var(--theme-surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--theme-border)', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--theme-secondary-text)', display: 'block', marginBottom: '15px' }}>입장 코드로 참여</span>
+              
+              {/* 🎯 입력 데이터 바인딩 연동 (inputCode 상태와 매칭) */}
               <input 
                 placeholder="CODE6" 
                 maxLength={6}
+                value={inputCode}
+                onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                 style={{ 
                   width: '100%', 
-                  padding: '12px', 
-                  borderRadius: '8px', 
+                  padding: '14px', 
+                  borderRadius: '10px', 
+                  backgroundColor: 'var(--theme-bg)',
                   border: '1px solid var(--theme-border)', 
+                  color: 'var(--theme-text)',
                   textAlign: 'center', 
-                  fontSize: '18px', 
+                  fontSize: '20px', 
                   fontWeight: '800', 
-                  letterSpacing: '3px',
-                  marginBottom: '10px',
-                  boxSizing: 'border-box'
+                  letterSpacing: '4px',
+                  marginBottom: '15px',
+                  boxSizing: 'border-box',
+                  outline: 'none'
                 }}
               />
-              <button style={{ width: '100%', padding: '12px', borderRadius: '8px', backgroundColor: '#f39c12', border: 'none', color: 'white', fontWeight: '700', cursor: 'pointer' }}>
+              
+              {/* 🎯 방 참여하기 버튼: 클릭 시 주소 들고 날아가도록 handleJoinRoom 액션 연결 */}
+              <button 
+                onClick={handleJoinRoom}
+                className="btn"
+                style={{ 
+                  width: '100%', 
+                  padding: '14px', 
+                  borderRadius: '12px', 
+                  color: 'var(--theme-text)',
+                  background: 'linear-gradient(var(--theme-surface), var(--theme-surface)) padding-box, linear-gradient(135deg, #cb6ce6, #38b6ff) border-box',
+                  border: '2px solid transparent',
+                  fontWeight: '700', 
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(56, 182, 255, 0.1)',
+                  transition: 'transform 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
                 🚪 방 참여하기
               </button>
             </div>
           </div>
         </div>
 
-        <div style={{ marginTop: '40px', textAlign: 'center' }}>
-          <Link to="/ranking" style={{ color: 'var(--tesla-blue)', textDecoration: 'none', fontSize: '16px', fontWeight: '500' }}>
+        {/* 하단 링크 영역 */}
+        <div style={{ marginTop: '50px', textAlign: 'center' }}>
+          <Link to="/ranking" style={{ color: '#38b6ff', textDecoration: 'underline', fontSize: '16px', fontWeight: '500' }}>
             ← 랭킹으로 돌아가기
           </Link>
         </div>
