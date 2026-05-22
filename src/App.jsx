@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { User, Settings, Activity, CheckCircle2, XCircle, Clock, Image, Globe, Monitor } from 'lucide-react';
@@ -7,11 +7,12 @@ import CPreview from './CPreview';
 import Community from './Community';
 import Profile from './Profile';
 import ProfileSettings from './ProfileSettings';
-import BattleArena from './BattleArena';
 import logo from './assets/logo.png';
 import { AuthProvider, useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 import AuthModal from './AuthModal';
+const BattleArena = lazy(() => import('./BattleArena'));
+const PrivateBattle = lazy(() => import('./PrivateBattle'));
 
 function App() {
   return (
