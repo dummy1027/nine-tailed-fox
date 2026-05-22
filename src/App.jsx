@@ -12,7 +12,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 import AuthModal from './AuthModal';
 const BattleArena = lazy(() => import('./BattleArena'));
-const PrivateBattle = lazy(() => import('./PrivateBattle'));
+<Route path="/private-battle" element={<PrivateBattle />} />
 
 
 function NavAuthArea({ onOpen }) {
