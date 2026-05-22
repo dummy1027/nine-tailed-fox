@@ -974,28 +974,6 @@ int main() {
   ]
 };
 
-export const levelColors = {
-  output: '#3498db',
-  inputOperator: '#2ecc71',
-  conditional: '#9b59b6',
-  loop: '#f39c12',
-  array: '#e74c3c',
-  string: '#1abc9c',
-  function: '#e67e22',
-  structure: '#95a5a6'
-};
-
-export const levelLabels = {
-  output: '출력문',
-  inputOperator: '입출력/연산자',
-  conditional: '조건문',
-  loop: '반복문',
-  array: '배열',
-  string: '문자열',
-  function: '함수',
-  structure: '구조체'
-};
-
 // 모든 문제를 하나의 배열로 가져오기
 export function getAllProblems() {
   const all = [];
