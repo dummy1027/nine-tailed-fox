@@ -2258,6 +2258,43 @@ const Ranking = () => {
           />
         </div>
 
+        {/* 서브 랭킹 cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '30px' }}>
+          <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)', padding: '16px' }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#cb6ce6', marginBottom: '12px', textAlign: 'center' }}>🏆 문제 풋수 TOP 5</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {rankings.slice(0, 5).map((user, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                  <span style={{ color: 'var(--theme-text)' }}>{user.username}</span>
+                  <span style={{ color: '#cb6ce6', fontWeight: '600' }}>{user.solved_problems?.length || 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)', padding: '16px' }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#f39c12', marginBottom: '12px', textAlign: 'center' }}>⭐ 레이팅 TOP 5</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {rankings.slice(0, 5).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5).map((user, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                  <span style={{ color: 'var(--theme-text)' }}>{user.username}</span>
+                  <span style={{ color: '#f39c12', fontWeight: '600' }}>{user.rating || '-'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)', padding: '16px' }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#2ecc71', marginBottom: '12px', textAlign: 'center' }}>🔥 스트라이크 TOP 5</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {rankings.slice(0, 5).sort((a, b) => (b.streak || 0) - (a.streak || 0)).slice(0, 5).map((user, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                  <span style={{ color: 'var(--theme-text)' }}>{user.username}</span>
+                  <span style={{ color: '#2ecc71', fontWeight: '600' }}>{user.streak || 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* 랭킹 메인 테이블 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
