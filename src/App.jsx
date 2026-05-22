@@ -1479,7 +1479,8 @@ const ServerStatus = () => {
   useEffect(() => {
     // 1. 처음 로딩 시 DB에서 데이터 가져오기
     const fetchInitialStatus = async () => {
-      const { data } = await supabase.from('servers_status').select('*');
+      // 수정: rooms 테이블을 사용하고, 존재하는 컬럼만 필터링
+const { data } = await supabase.from('rooms').select('*').eq('room_code', generatedCode);
       if (data) {
         const newServers = {};
         data.forEach(s => {
