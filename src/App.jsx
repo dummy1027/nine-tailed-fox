@@ -2094,9 +2094,8 @@ const Workbook = () => {
   );
 };
 
-// ⭕ App.jsx의 const Ranking 시작부터 끝나는 구역까지만 찾아서 덮어쓰기 하세요!
 const Ranking = () => {
-  // 🎯 자바스크립트 순서(TDZ) 억까를 막기 위해 함수 내부 최상단에 상수를 박아버렸습니다!
+  // 🎯 자바스크립트 순서(TDZ) 에러를 원천 차단하기 위해 함수 내부 최상단에 상수를 박았습니다.
   const RANK_ORDER = ['beginner', 'veteran', 'expert', 'master', 'grandmaster'];
   const RANK_COLORS = {
     beginner: '#95a5a6',
@@ -2167,7 +2166,7 @@ const Ranking = () => {
           다른 사용자들과 점수를 비교하고 순위를 확인하세요!
         </p>
 
-        {/* 상단 티어 가이드라인 안내 바 */}
+        {/* 티어 안내 바 */}
         <div style={{
           display: 'flex', gap: '12px', marginBottom: '30px', padding: '14px 20px',
           backgroundColor: 'var(--theme-surface)', borderRadius: '12px', border: '1px solid var(--theme-border)',
@@ -2191,22 +2190,50 @@ const Ranking = () => {
           ))}
         </div>
 
-        {/* 검색 인풋창 */}
-        <div style={{ position: 'relative', maxWidth: '100%', marginBottom: '30px' }}>
+        {/* 🎯 [복원 완료] 유저 이름 검색창과 매치 버튼들을 한 줄로 완벽 정렬 */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '15px', 
+          alignItems: 'center', 
+          marginBottom: '30px',
+          flexWrap: 'wrap'
+        }}>
+          {/* 검색창 인풋 */}
           <input
             type="text"
             placeholder="검색할 사용자의 닉네임을 입력하세요..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
-              width: '100%', padding: '14px 20px', fontSize: '15px', borderRadius: '12px',
+              flex: 1, minWidth: '200px', padding: '14px 20px', fontSize: '15px', borderRadius: '12px',
               backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)',
               color: 'var(--theme-text)', outline: 'none', boxSizing: 'border-box'
             }}
           />
+          
+          {/* ⚔️ 랜덤 매치 버튼 */}
+          <button 
+            className="btn paradox-bg" 
+            style={{ padding: '14px 25px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', borderRadius: '12px' }} 
+            onClick={() => navigate('/battle-arena')}
+          >
+            ⚔️ 랜덤 매치
+          </button>
+          
+          {/* 🔒 비공개 매치 버튼 */}
+          <button 
+            className="btn" 
+            style={{ 
+              padding: '14px 25px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', borderRadius: '12px',
+              backgroundColor: 'var(--theme-surface)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)'
+            }} 
+            onClick={() => navigate('/private-battle')}
+          >
+            🔒 비공개 매치
+          </button>
         </div>
 
-        {/* 실시간 리스트 렌더링 영역 */}
+        {/* 랭킹 메인 테이블 리스트 리스트 */}
         <div style={{ backgroundColor: 'var(--theme-surface)', borderRadius: '16px', border: '1px solid var(--theme-border)', overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 100px 100px 100px', padding: '16px 20px', backgroundColor: 'var(--theme-bg)', borderBottom: '1px solid var(--theme-border)', fontWeight: '600', fontSize: '14px', color: 'var(--theme-secondary-text)' }}>
             <div>Rank</div>
@@ -2261,6 +2288,7 @@ const Ranking = () => {
           )}
         </div>
 
+        {/* 뒤로가기 링크 */}
         <div style={{ marginTop: '40px', textAlign: 'center' }}>
           <span 
             onClick={() => navigate('/')} 
