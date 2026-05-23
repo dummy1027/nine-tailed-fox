@@ -355,8 +355,6 @@ export default function BattleArena() {
         }
       };
 
-      fetchRoomData();
-
       // (아래 생략... 실시간 룸 DB 변경 감지하는 ch 코드 유지)
 
       fetchRoomData();
