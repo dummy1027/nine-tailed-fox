@@ -322,7 +322,7 @@ export default function BattleArena() {
     if (phase !== 'matching') return;
 
     if (isPrivateBattle) {
-      // 🚨 사설 방 정보 불러오고 구독 즉시 활성화
+      // 사설 방 정보 불러오고 구독 즉시 활성화
       subscribeToRoom(roomCode);
 
       const fetchRoomData = async () => {
@@ -354,6 +354,10 @@ export default function BattleArena() {
           }
         }
       };
+
+      fetchRoomData();
+
+      // (아래 생략... 실시간 룸 DB 변경 감지하는 ch 코드 유지)
 
       fetchRoomData();
 
@@ -879,7 +883,10 @@ export default function BattleArena() {
           <div style={{ display: 'flex', gap: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 40 }}>
             <div style={styles.countdownPlayer}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>👤</div>
-              <p style={{ fontWeight: 700, fontSize: 16 }}>{profile?.username || user?.email?.split('@')[0] || 'You'}</p>
+              {/* 🚨 [수리] user.email이 정의되지 않았을 때 터지는 현상을 완벽하게 방어 */}
+              <p style={{ fontWeight: 700, fontSize: 16 }}>
+                {profile?.username || user?.email?.split('@')[0] || '나(Player)'}
+              </p>
               <span style={{ ...styles.rankBadge, backgroundColor: `${RANK_COLORS[getRank(profile?.score || 0)]}25`, color: RANK_COLORS[getRank(profile?.score || 0)] }}>
                 {getRank(profile?.score || 0)}
               </span>
@@ -887,7 +894,7 @@ export default function BattleArena() {
             <div style={{ fontSize: 28, fontWeight: 900, color: '#cb6ce6', fontFamily: "'Nunito', sans-serif" }}>VS</div>
             <div style={styles.countdownPlayer}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>{opponent?.isBot ? '🤖' : '👤'}</div>
-              <p style={{ fontWeight: 700, fontSize: 16 }}>{opponent?.username}</p>
+              <p style={{ fontWeight: 700, fontSize: 16 }}>{opponent?.username || '상대방'}</p>
               <span style={{ ...styles.rankBadge, backgroundColor: `${RANK_COLORS[opponent?.rank_title] || '#95a5a6'}25`, color: RANK_COLORS[opponent?.rank_title] || '#95a5a6' }}>
                 {opponent?.rank_title || 'beginner'}
               </span>
