@@ -202,7 +202,6 @@ export default function BattleArena() {
 
   const searchParams = new URLSearchParams(window.location.search);
   
-  // 🚨 [새로고침 방어] F5 대응을 위해 sessionStorage 및 URL 파라미터 다중 검증 구조 적용
   const [roomCode, setRoomCode] = useState(() => {
     return searchParams.get('room') || sessionStorage.getItem('current_room_code') || '';
   });
@@ -247,43 +246,11 @@ export default function BattleArena() {
   const [showSuggest, setShowSuggest] = useState(false);
   const [suggestPos, setSuggestPos] = useState({ top: 0, left: 0 });
 
-  // 🚨 방 코드 및 역할 세션스토리지 자동 기록
+  // 세션 스토리지 보존
   useEffect(() => {
     if (roomCode) sessionStorage.setItem('current_room_code', roomCode);
     if (myRole) sessionStorage.setItem('current_room_role', myRole);
   }, [roomCode, myRole]);
-
-  const updateSuggestPos = (textBeforeCursor) => {
-    if (!mirrorRef.current || !textareaRef.current) return;
-    const mirror = mirrorRef.current;
-    mirror.textContent = textBeforeCursor;
-    const span = document.createElement('span');
-    span.textContent = '|';
-    mirror.appendChild(span);
-    const { offsetTop, offsetLeft } = span;
-    setSuggestPos({ top: offsetTop + 25, left: offsetLeft });
-  };
-
-  const handleSelectSuggestion = (suggestion) => {
-    const start = textareaRef.current.selectionStart;
-    const value = code;
-    const lastWordMatch = value.substring(0, start).match(/[\w#.]+$/);
-    if (!lastWordMatch) return;
-    const wordStart = start - lastWordMatch[0].length;
-    let insertValue = suggestion;
-    let cursorShift = suggestion.length;
-    if (FUNC_KW.includes(suggestion)) { insertValue += '()'; cursorShift += 1; }
-    const newCode = value.substring(0, wordStart) + insertValue + value.substring(start);
-    setCode(newCode);
-    setShowSuggest(false);
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        const newPos = wordStart + cursorShift;
-        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newPos;
-      }
-    }, 0);
-  };
 
   useEffect(() => {
     myHpRef.current = myHp;
@@ -293,36 +260,51 @@ export default function BattleArena() {
     oppHpRef.current = oppHp;
   }, [oppHp]);
 
-  useEffect(() => {
-    if (phase !== 'battle') return;
-    const h = (e) => {
-      e.preventDefault();
-      e.returnValue = '배틀 중입니다. 정말 나가시겠습니까?';
-    };
-    window.addEventListener('beforeunload', h);
+  /* ─── 실시간 전송 채널 구독 활성화 ─── */
+  const subscribeToRoom = (roomId) => {
+    console.log("⚔️ 배틀 채널 연결 시작, 방 ID:", roomId);
+    if (channelRef.current) supabase.removeChannel(channelRef.current);
 
-    const handlePopState = () => {
-      if (phase === 'battle') {
-        window.history.pushState(null, '', window.location.href);
-        setShowLeaveModal(true);
+    const ch = supabase.channel(`battle_${roomId}`)
+      .on('broadcast', { event: 'damage' }, (payload) => {
+        console.log("💥 실시간 데미지 신호 도착:", payload);
+        
+        if (payload.payload.from !== user?.id) {
+          setMyHp(prev => {
+            const next = Math.max(0, prev - payload.payload.amount);
+            triggerDamageAnim('my');
+            if (next <= 0) {
+              const result = oppHpRef.current <= 0 ? 'draw' : 'lose';
+              finalizeBattle(result);
+            }
+            return next;
+          });
+
+          setOppHp(prev => Math.max(0, prev - payload.payload.amount));
+          triggerDamageAnim('opp');
+        }
+      })
+      .on('broadcast', { event: 'gameover' }, (payload) => {
+        console.log("🏁 게임오버 신호 감지:", payload);
+        if (payload.payload.winner !== user?.id) {
+          setPhase('gameover');
+          setBattleResult('lose');
+        }
+      });
+
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log("✅ 실시간 배틀 연동 채널 구독 완전 성공!");
       }
-    };
+    });
+    channelRef.current = ch;
+  };
 
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('beforeunload', h);
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [phase]);
-
-  /* ─── Supabase Realtime 매칭 ─── */
+  /* ─── Supabase 매칭 메인 핸들러 ─── */
   useEffect(() => {
     if (phase !== 'matching') return;
 
     if (isPrivateBattle) {
-      // 사설 방 정보 불러오고 구독 즉시 활성화
       subscribeToRoom(roomCode);
 
       const fetchRoomData = async () => {
@@ -354,8 +336,6 @@ export default function BattleArena() {
           }
         }
       };
-
-      // (아래 생략... 실시간 룸 DB 변경 감지하는 ch 코드 유지)
 
       fetchRoomData();
 
@@ -443,7 +423,6 @@ export default function BattleArena() {
         supabase.from('battle_queue').delete().eq('user_id', user.id).eq('status', 'waiting');
       }
     };
-    // eslint-disable-next-line
   }, [phase, user, isDev, isPrivateBattle, roomCode, myRole]);
 
   const fetchOpponent = async (roomId) => {
@@ -466,51 +445,8 @@ export default function BattleArena() {
     }
   };
 
-  // 🚨 [실시간 수신 핵심 수리] 나뿐만 아니라 내 화면의 상대 피도 정확히 연동되게 제어
-  const subscribeToRoom = (roomId) => {
-    console.log("⚔️ 배틀 채널 연결 시작, 방 ID:", roomId);
-    if (channelRef.current) supabase.removeChannel(channelRef.current);
-
-    const ch = supabase.channel(`battle_${roomId}`)
-      .on('broadcast', { event: 'damage' }, (payload) => {
-        console.log("💥 실시간 데미지 신호 도착:", payload);
-        
-        // 신호를 보낸 사람이 상대방인 경우 처리
-        if (payload.payload.from !== user?.id) {
-          // 1. 내 체력 차감
-          setMyHp(prev => {
-            const next = Math.max(0, prev - payload.payload.amount);
-            triggerDamageAnim('my');
-            if (next <= 0) {
-              const result = oppHpRef.current <= 0 ? 'draw' : 'lose';
-              finalizeBattle(result);
-            }
-            return next;
-          });
-
-          // 2. 🚨 [연동 핵심] 상대방 화면에서 내가 맞춘 기댓값이므로 내 화면의 '상대방 피'도 강제 차감 동기화!
-          setOppHp(prev => Math.max(0, prev - payload.payload.amount));
-          triggerDamageAnim('opp');
-        }
-      })
-      .on('broadcast', { event: 'gameover' }, (payload) => {
-        console.log("🏁 게임오버 신호 감지:", payload);
-        if (payload.payload.winner !== user?.id) {
-          setPhase('gameover');
-          setBattleResult('lose');
-        }
-      });
-
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log("✅ 실시간 배틀 연동 채널 구독 완전 성공!");
-      }
-    });
-    channelRef.current = ch;
-  };
-
   const startBotMatch = () => {
-    const botNames = ['CodeNinja', 'ByteMaster', 'SyntaxSage', 'AlgoKing', 'BitWizard', 'CompileBot', 'StackHero'];
+    const botNames = ['CodeNinja', 'ByteMaster', 'SyntaxSage', 'AlgoKing', 'BitWizard'];
     const botScore = Math.floor(Math.random() * 800) + 100;
     setOpponent({
       username: botNames[Math.floor(Math.random() * botNames.length)],
@@ -521,7 +457,20 @@ export default function BattleArena() {
     setPhase('countdown');
   };
 
-  /* ─── 카운트다운 ─── */
+  /* ─── 사설매칭 방어막 타이머 ─── */
+  useEffect(() => {
+    if (phase !== 'matching') return;
+    if (isPrivateBattle) return; // 사설 배틀방 타임아웃 차단
+
+    if (matchTimer <= 0) {
+      startBotMatch();
+      return;
+    }
+    const timer = setTimeout(() => setMatchTimer(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phase, matchTimer, isPrivateBattle]);
+
+  /* ─── 카운트다운 타이머 ─── */
   useEffect(() => {
     if (phase !== 'countdown') return;
     if (countdown <= 0) {
@@ -535,7 +484,7 @@ export default function BattleArena() {
     return () => clearTimeout(t);
   }, [phase, countdown]);
 
-  /* ─── 배틀 타이머 ─── */
+  /* ─── 인게임 배틀 타임아웃 ─── */
   useEffect(() => {
     if (phase !== 'battle') return;
     const iv = setInterval(() => {
@@ -550,9 +499,9 @@ export default function BattleArena() {
       });
     }, 1000);
     return () => clearInterval(iv);
-  }, [phase, finalizeBattle]);
+  }, [phase]);
 
-  /* ─── 봇 자동 풀이 (랜덤 타이밍) ─── */
+  /* ─── 인공지능 봇 트리거 ─── */
   useEffect(() => {
     if (phase !== 'battle' || !opponent?.isBot) return;
     const scheduleBotSolve = () => {
@@ -572,10 +521,8 @@ export default function BattleArena() {
     };
     scheduleBotSolve();
     return () => clearTimeout(oppBotTimerRef.current);
-    // eslint-disable-next-line
   }, [phase, opponent]);
 
-  /* ─── 데미지 애니메이션 ─── */
   const triggerDamageAnim = (who) => {
     setDamageAnim(prev => ({ ...prev, [who]: true }));
     setTimeout(() => setDamageAnim(prev => ({ ...prev, [who]: false })), 600);
@@ -607,7 +554,6 @@ export default function BattleArena() {
     await applyRatingChange(delta);
   }, [applyRatingChange]);
 
-  /* ─── 채점 ─── */
   const handleRun = () => {
     setResultType('run');
     const result = simulateC(code);
@@ -615,7 +561,6 @@ export default function BattleArena() {
     setIsCorrect(null);
   };
 
-  // 🚨 [송신 핵심 수리] 내가 정답을 제출했을 때 상대방에게 실시간 브로드캐스트가 확실히 꽂히게 정비
   const handleCheck = async () => {
     if (!problem) return;
     if (isCorrect === true) return;
@@ -637,7 +582,6 @@ export default function BattleArena() {
       triggerDamageAnim('opp');
       setOppHp(newOppHp);
 
-      // 🚨 [실시간 타격 전송] 상대방 화면 브라우저로 35데미지 실시간 타격 발송!
       if (channelRef.current) {
         console.log("🚀 상대방 저격 성공! 데미지 쏴줍니다.");
         channelRef.current.send({
@@ -645,8 +589,6 @@ export default function BattleArena() {
           event: 'damage',
           payload: { from: user?.id, amount: DAMAGE_PER_CORRECT }
         });
-      } else {
-        console.error("❌ 오류: channelRef 가 비어있어 전송에 실패했습니다.");
       }
 
       if (newOppHp <= 0) {
@@ -679,7 +621,6 @@ export default function BattleArena() {
     setResultType(null);
   };
 
-  /* ─── 나가기 ─── */
   const handleLeaveBattle = useCallback(async (confirmed = false) => {
     if (phase === 'battle' && !confirmed) {
       clearTimeout(oppBotTimerRef.current);
@@ -717,40 +658,39 @@ export default function BattleArena() {
     }
   };
 
-  useEffect(() => {
-    if (phase !== 'battle') return;
-    const h = (e) => {
-      e.preventDefault();
-      e.returnValue = '배틀 중입니다. 정말 나가시겠습니까?';
-    };
-    const handlePopState = () => {
-      if (phase === 'battle') {
-        window.history.pushState(null, '', window.location.href);
-        setShowLeaveModal(true);
+  /* ─── 자동 완성 위치 연산 ─── */
+  const updateSuggestPos = (textBeforeCursor) => {
+    if (!mirrorRef.current || !textareaRef.current) return;
+    const mirror = mirrorRef.current;
+    mirror.textContent = textBeforeCursor;
+    const span = document.createElement('span');
+    span.textContent = '|';
+    mirror.appendChild(span);
+    const { offsetTop, offsetLeft } = span;
+    setSuggestPos({ top: offsetTop + 25, left: offsetLeft });
+  };
+
+  const handleSelectSuggestion = (suggestion) => {
+    const start = textareaRef.current.selectionStart;
+    const value = code;
+    const lastWordMatch = value.substring(0, start).match(/[\w#.]+$/);
+    if (!lastWordMatch) return;
+    const wordStart = start - lastWordMatch[0].length;
+    let insertValue = suggestion;
+    let cursorShift = suggestion.length;
+    if (FUNC_KW.includes(suggestion)) { insertValue += '()'; cursorShift += 1; }
+    const newCode = value.substring(0, wordStart) + insertValue + value.substring(start);
+    setCode(newCode);
+    setShowSuggest(false);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newPos = wordStart + cursorShift;
+        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newPos;
       }
-    };
+    }, 0);
+  };
 
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('beforeunload', h);
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('beforeunload', h);
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [phase]);
-
-  useEffect(() => {
-    if (phase !== 'matching') return;
-    if (matchTimer <= 0) {
-      startBotMatch();
-      return;
-    }
-    const timer = setTimeout(() => setMatchTimer(prev => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [phase, matchTimer, opponent]);
-
-  /* ─── 에디터 키 핸들러 ─── */
   const handleKeyDown = (e) => {
     if (showSuggest) {
       if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestIndex(prev => (prev + 1) % suggestions.length); return; }
@@ -821,10 +761,7 @@ export default function BattleArena() {
       <div style={styles.fullPage}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap');
-          @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 1; }
-            100% { transform: scale(2.2); opacity: 0; }
-          }
+          @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
           @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
           @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
           @keyframes dotPulse { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
@@ -841,7 +778,6 @@ export default function BattleArena() {
               fontSize: '36px', animation: 'float 3s ease-in-out infinite'
             }}>⚔️</div>
           </div>
-
           <h2 style={{
             fontFamily: "'Nunito', sans-serif", fontSize: '2rem', fontWeight: 900,
             background: 'linear-gradient(90deg, #cb6ce6, #7c3aed, #cb6ce6)',
@@ -853,18 +789,13 @@ export default function BattleArena() {
             <span style={{ animation: 'dotPulse 1.4s infinite 0.2s' }}>.</span>
             <span style={{ animation: 'dotPulse 1.4s infinite 0.4s' }}>.</span>
           </h2>
-
-          <p style={{ color: 'var(--theme-secondary-text, #8b8fa3)', marginTop: 12, fontSize: 14 }}>
+          <p style={{ color: '#8b8fa3', marginTop: 12, fontSize: 14 }}>
             상대를 찾고 있습니다 ({matchTimer}초)
           </p>
-
           <button onClick={() => navigate('/ranking')} style={{
             marginTop: 30, padding: '10px 28px', borderRadius: 10,
-            background: 'transparent', border: '1px solid var(--theme-border, #333)',
-            color: 'var(--theme-secondary-text, #8b8fa3)', cursor: 'pointer', fontSize: 14
-          }}>
-            취소
-          </button>
+            background: 'transparent', border: '1px solid #333', color: '#8b8fa3', cursor: 'pointer', fontSize: 14
+          }}>취소</button>
         </div>
       </div>
     );
@@ -881,10 +812,7 @@ export default function BattleArena() {
           <div style={{ display: 'flex', gap: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 40 }}>
             <div style={styles.countdownPlayer}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>👤</div>
-              {/* 🚨 [수리] user.email이 정의되지 않았을 때 터지는 현상을 완벽하게 방어 */}
-              <p style={{ fontWeight: 700, fontSize: 16 }}>
-                {profile?.username || user?.email?.split('@')[0] || '나(Player)'}
-              </p>
+              <p style={{ fontWeight: 700, fontSize: 16 }}>{profile?.username || user?.email?.split('@')[0] || '나(Player)'}</p>
               <span style={{ ...styles.rankBadge, backgroundColor: `${RANK_COLORS[getRank(profile?.score || 0)]}25`, color: RANK_COLORS[getRank(profile?.score || 0)] }}>
                 {getRank(profile?.score || 0)}
               </span>
@@ -903,8 +831,7 @@ export default function BattleArena() {
             fontFamily: "'Nunito', sans-serif",
             background: 'linear-gradient(135deg, #cb6ce6, #7c3aed)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            animation: 'countBounce 0.6s ease-out',
-            lineHeight: 1.2, padding: '20px'
+            animation: 'countBounce 0.6s ease-out', lineHeight: 1.2, padding: '20px'
           }}>
             {countdown === 0 ? 'FIGHT!' : countdown}
           </div>
@@ -926,223 +853,106 @@ export default function BattleArena() {
           @keyframes fadeUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         `}</style>
         <div style={{ textAlign: 'center', animation: 'fadeUp 0.6s ease-out' }}>
-          <div style={{ fontSize: 72, marginBottom: 16 }}>
-            {isWin ? '🏆' : isDraw ? '🤝' : '💀'}
-          </div>
+          <div style={{ fontSize: 72, marginBottom: 16 }}>{isWin ? '🏆' : isDraw ? '🤝' : '💀'}</div>
           <h1 style={{
             fontFamily: "'Nunito', sans-serif", fontSize: '3rem', fontWeight: 900,
             color: isWin ? '#2ecc71' : isDraw ? '#f39c12' : '#e74c3c',
             animation: isWin ? 'victoryGlow 2s ease-in-out infinite' : isDraw ? 'none' : 'defeatShake 0.5s ease-in-out',
             marginBottom: 10
-          }}>
-            {isWin ? 'VICTORY!' : isDraw ? 'DRAW' : 'DEFEAT'}
-          </h1>
-          <p style={{ color: 'var(--theme-secondary-text, #8b8fa3)', fontSize: 16, marginBottom: 8 }}>
-            vs {opponent?.username} {opponent?.isBot ? '(Bot)' : ''}
-          </p>
+          }}>{isWin ? 'VICTORY!' : isDraw ? 'DRAW' : 'DEFEAT'}</h1>
+          <p style={{ color: '#8b8fa3', fontSize: 16, marginBottom: 8 }}>vs {opponent?.username}</p>
           <div style={{ display: 'flex', gap: 30, justifyContent: 'center', marginTop: 20, marginBottom: 30 }}>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ color: '#8b8fa3', fontSize: 12 }}>내 HP</p>
-              <p style={{ fontSize: 24, fontWeight: 800, color: '#2ecc71' }}>{myHp}</p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ color: '#8b8fa3', fontSize: 12 }}>상대 HP</p>
-              <p style={{ fontSize: 24, fontWeight: 800, color: '#e74c3c' }}>{oppHp}</p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ color: '#8b8fa3', fontSize: 12 }}>풀이 수</p>
-              <p style={{ fontSize: 24, fontWeight: 800, color: '#cb6ce6' }}>{problemCount}</p>
-            </div>
+            <div style={{ textAlign: 'center' }}><p style={{ color: '#8b8fa3', fontSize: 12 }}>내 HP</p><p style={{ fontSize: 24, fontWeight: 800, color: '#2ecc71' }}>{myHp}</p></div>
+            <div style={{ textAlign: 'center' }}><p style={{ color: '#8b8fa3', fontSize: 12 }}>상대 HP</p><p style={{ fontSize: 24, fontWeight: 800, color: '#e74c3c' }}>{oppHp}</p></div>
+            <div style={{ textAlign: 'center' }}><p style={{ color: '#8b8fa3', fontSize: 12 }}>풀이 수</p><p style={{ fontSize: 24, fontWeight: 800, color: '#cb6ce6' }}>{problemCount}</p></div>
           </div>
           <p style={{ color: isWin ? '#2ecc71' : isDraw ? '#f39c12' : '#e74c3c', fontSize: 16, marginBottom: 20, fontWeight: 700 }}>{ratingLabel}</p>
           <button onClick={() => navigate('/ranking')} style={{
-            padding: '14px 40px', borderRadius: 12, border: 'none', cursor: 'pointer',
-            fontWeight: 700, fontSize: 16, color: 'white',
-            background: 'linear-gradient(135deg, #7c3aed, #cb6ce6)',
-            boxShadow: '0 4px 20px rgba(124,58,237,0.4)', transition: 'transform 0.2s'
-          }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            랭킹으로 돌아가기
-          </button>
+            padding: '14px 40px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 16, color: 'white',
+            background: 'linear-gradient(135deg, #7c3aed, #cb6ce6)', boxShadow: '0 4px 20px rgba(124,58,237,0.4)'
+          }}>랭킹으로 돌아가기</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg, #0f1117)', color: 'var(--theme-text, #e2e8f0)', padding: '70px 16px 16px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0f1117', color: '#e2e8f0', padding: '70px 16px 16px' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap');
-        @keyframes hpDamage { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+        @keyframes hpDamage { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } }
         @keyframes correctFlash { 0% { box-shadow: 0 0 0 rgba(46,204,113,0); } 50% { box-shadow: 0 0 30px rgba(46,204,113,0.6); } 100% { box-shadow: 0 0 0 rgba(46,204,113,0); } }
         @keyframes wrongFlash { 0% { box-shadow: 0 0 0 rgba(231,76,60,0); } 50% { box-shadow: 0 0 30px rgba(231,76,60,0.6); } 100% { box-shadow: 0 0 0 rgba(231,76,60,0); } }
       `}</style>
 
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        {/* 상단: 체력바 + 타이머 */}
+        {/* 상단 스탯 영역 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 16, alignItems: 'center', marginBottom: 16 }}>
-          {/* 내 체력 */}
           <div style={{ animation: damageAnim.my ? 'hpDamage 0.4s ease-in-out' : 'none' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 13, fontWeight: 700 }}>👤 {profile?.username || 'You'}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#2ecc71' }}>{myHp}/{MAX_HP}</span>
             </div>
             <div style={styles.hpBarOuter}>
-              <div style={{
-                ...styles.hpBarInner,
-                width: `${(myHp / MAX_HP) * 100}%`,
-                background: myHp > 60 ? 'linear-gradient(90deg, #2ecc71, #27ae60)' : myHp > 30 ? 'linear-gradient(90deg, #f39c12, #e67e22)' : 'linear-gradient(90deg, #e74c3c, #c0392b)',
-              }} />
+              <div style={{ ...styles.hpBarInner, width: `${(myHp / MAX_HP) * 100}%`, background: myHp > 60 ? 'linear-gradient(90deg, #2ecc71, #27ae60)' : 'linear-gradient(90deg, #e74c3c, #c0392b)' }} />
             </div>
           </div>
 
-          {/* 타이머 */}
-          <div style={{
-            padding: '8px 20px', borderRadius: 12,
-            background: battleTime <= 30 ? 'rgba(231,76,60,0.15)' : 'rgba(124,58,237,0.1)',
-            border: `1px solid ${battleTime <= 30 ? 'rgba(231,76,60,0.3)' : 'rgba(124,58,237,0.2)'}`,
-            textAlign: 'center', minWidth: 90
-          }}>
+          <div style={{ padding: '8px 20px', borderRadius: 12, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', textAlign: 'center', minWidth: 90 }}>
             <div style={{ fontSize: 10, color: '#8b8fa3', marginBottom: 2 }}>남은 시간</div>
-            <div style={{ fontSize: 20, fontWeight: 900, fontFamily: "'Nunito', sans-serif", color: battleTime <= 30 ? '#e74c3c' : '#cb6ce6' }}>
-              {formatTime(battleTime)}
-            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, fontFamily: "'Nunito', sans-serif", color: '#cb6ce6' }}>{formatTime(battleTime)}</div>
           </div>
 
-          {/* 상대 체력 */}
           <div style={{ animation: damageAnim.opp ? 'hpDamage 0.4s ease-in-out' : 'none' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>{opponent?.isBot ? '🤖' : '👤'} {opponent?.username}</span>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>👤 {opponent?.username || 'Opponent'}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#e74c3c' }}>{oppHp}/{MAX_HP}</span>
             </div>
             <div style={styles.hpBarOuter}>
-              <div style={{
-                ...styles.hpBarInner,
-                width: `${(oppHp / MAX_HP) * 100}%`,
-                background: oppHp > 60 ? 'linear-gradient(90deg, #e74c3c, #c0392b)' : oppHp > 30 ? 'linear-gradient(90deg, #f39c12, #e67e22)' : 'linear-gradient(90deg, #2ecc71, #27ae60)',
-              }} />
+              <div style={{ ...styles.hpBarInner, width: `${(oppHp / MAX_HP) * 100}%`, background: 'linear-gradient(90deg, #e74c3c, #c0392b)' }} />
             </div>
           </div>
         </div>
 
-        {/* 문제 영역 */}
-        <div style={{
-          padding: '16px 20px', marginBottom: 12,
-          background: 'var(--theme-surface, #1a1d27)', borderRadius: 14,
-          border: '1px solid var(--theme-border, #2a2d3a)',
-          animation: isCorrect === true ? 'correctFlash 0.8s ease' : isCorrect === false ? 'wrongFlash 0.8s ease' : 'none'
-        }}>
+        {/* 문제창 */}
+        <div style={{ padding: '16px 20px', marginBottom: 12, background: '#1a1d27', borderRadius: 14, border: '1px solid #2a2d3a', animation: isCorrect === true ? 'correctFlash 0.8s ease' : isCorrect === false ? 'wrongFlash 0.8s ease' : 'none' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: '#cb6ce6', fontFamily: "'Nunito', sans-serif" }}>
-              {problem?.title || '문제 로딩 중...'}
-            </h3>
-            <span style={{
-              fontSize: 11, padding: '3px 10px', borderRadius: 6,
-              background: 'rgba(203,108,230,0.1)', color: '#cb6ce6', fontWeight: 600
-            }}>
-              #{problemCount + 1}
-            </span>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: '#cb6ce6', fontFamily: "'Nunito', sans-serif" }}>{problem?.title || '문제 로딩 중...'}</h3>
+            <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, background: 'rgba(203,108,230,0.1)', color: '#cb6ce6', fontWeight: 600 }}>#{problemCount + 1}</span>
           </div>
-          <p style={{ color: 'var(--theme-secondary-text, #8b8fa3)', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-            {problem?.description}
-          </p>
-          {problem?.input && (
-            <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(0,0,0,0.3)', fontSize: 13 }}>
-              <span style={{ color: '#8b8fa3' }}>입력: </span><span style={{ color: '#4ade80', fontFamily: 'monospace' }}>{problem.input}</span>
-            </div>
-          )}
+          <p style={{ color: '#8b8fa3', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{problem?.description}</p>
           {problem?.output && (
             <div style={{ marginTop: 6, padding: '8px 12px', borderRadius: 8, background: 'rgba(0,0,0,0.3)', fontSize: 13 }}>
               <span style={{ color: '#8b8fa3' }}>기대 출력: </span><span style={{ color: '#fbbf24', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{problem.output.replace(/\\n/g, '\n')}</span>
             </div>
           )}
-          {problem?.hint && (
-            <p style={{ marginTop: 8, fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>💡 힌트: {problem.hint}</p>
-          )}
         </div>
 
-        {/* 에디터 + 결과 영역 */}
+        {/* 작업 에디터 + 결과창 분할 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {/* 코드 에디터 */}
-          <div style={{ background: 'var(--theme-surface, #1a1d27)', borderRadius: 14, border: '1px solid var(--theme-border, #2a2d3a)', overflow: 'hidden' }}>
-            <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--theme-border, #2a2d3a)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#8b8fa3', fontWeight: 600 }}>코드 에디터</span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#e74c3c' }} />
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f39c12' }} />
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#2ecc71' }} />
-              </div>
-            </div>
+          <div style={{ background: '#1a1d27', borderRadius: 14, border: '1px solid #2a2d3a', overflow: 'hidden' }}>
             <div style={{ position: 'relative', height: 320, overflow: 'hidden', display: 'flex', alignItems: 'stretch' }}>
-              <div style={{
-                width: 45, height: '100%', background: '#0d0d0e', color: '#4b4b4d',
-                fontFamily: '"Fira Code","Courier New",monospace', fontSize: 14, lineHeight: 1.6,
-                padding: '16px 0', textAlign: 'center', userSelect: 'none', borderRight: '1px solid #1c1c1e',
-                zIndex: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center'
-              }}>
-                {code.split('\n').map((_, i) => (
-                  <div key={i} style={{ color: '#4b4b4d' }}>{i + 1}</div>
-                ))}
+              <div style={{ width: 45, background: '#0d0d0e', color: '#4b4b4d', fontFamily: 'monospace', fontSize: 14, lineHeight: 1.6, padding: '16px 0', textAlign: 'center', borderRight: '1px solid #1c1c1e', zIndex: 3 }}>
+                {code.split('\n').map((_, i) => <div key={i}>{i + 1}</div>)}
               </div>
-
               <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-                <div ref={mirrorRef} style={{
-                  position: 'absolute', top: 0, left: 0, padding: 16,
-                  fontFamily: '"Fira Code","Courier New",monospace', fontSize: 14, lineHeight: 1.6,
-                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', visibility: 'hidden', width: '100%',
-                  zIndex: -1, pointerEvents: 'none', letterSpacing: 'normal', tabSize: 4
-                }} />
-
+                <div ref={mirrorRef} style={{ position: 'absolute', top: 0, left: 0, padding: 16, fontFamily: 'monospace', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', visibility: 'hidden', zIndex: -1 }} />
+                
                 {showSuggest && (
-                  <div style={{
-                    position: 'absolute', top: suggestPos.top, left: suggestPos.left,
-                    background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8,
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)', zIndex: 10, minWidth: 150, maxHeight: 200, overflowY: 'auto'
-                  }}>
+                  <div style={{ position: 'absolute', top: suggestPos.top, left: suggestPos.left, background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8, zIndex: 10, minWidth: 150 }}>
                     {suggestions.map((s, i) => (
-                      <div key={i} onMouseEnter={() => setSuggestIndex(i)} onClick={() => handleSelectSuggestion(s)}
-                        style={{
-                          padding: '8px 12px', cursor: 'pointer',
-                          background: i === suggestIndex ? 'rgba(203, 110, 230, 0.2)' : 'transparent',
-                          color: i === suggestIndex ? '#cb6ce6' : '#fff', fontSize: 14, fontFamily: 'monospace'
-                        }}>
-                        <span>{s}</span>
-                      </div>
+                      <div key={i} onClick={() => handleSelectSuggestion(s)} style={{ padding: '8px 12px', cursor: 'pointer', background: i === suggestIndex ? 'rgba(203, 110, 230, 0.2)' : 'transparent', color: '#fff' }}>{s}</div>
                     ))}
                   </div>
                 )}
 
-                <pre ref={preRef} style={{
-                  position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                  margin: 0, padding: 16, fontFamily: '"Fira Code","Courier New",monospace',
-                  fontSize: 14, lineHeight: 1.6, tabSize: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                  background: '#0d0f14', color: '#e2e8f0', overflow: 'auto', zIndex: 1, pointerEvents: 'none',
-                  letterSpacing: 'normal', boxSizing: 'border-box', textAlign: 'left'
-                }}>
-                  {highlightCode(code).map((tk, i) => <span key={i} style={{ color: tokenColor[tk.t] || '#e2e8f0' }}>{tk.v}</span>)}
+                <pre ref={preRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', margin: 0, padding: 16, fontFamily: 'monospace', fontSize: 14, lineHeight: 1.6, background: '#0d0f14', color: '#e2e8f0', overflow: 'auto', zIndex: 1, pointerEvents: 'none' }}>
+                  {highlightCode(code).map((tk, i) => <span key={i} style={{ color: tokenColor[tk.t] }}>{tk.v}</span>)}
                 </pre>
-
-                <textarea
-                  ref={textareaRef}
-                  value={code}
-                  onChange={handleCodeChange}
-                  onKeyDown={handleKeyDown}
-                  onScroll={handleScroll}
-                  spellCheck={false}
-                  style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    margin: 0, padding: 16, fontFamily: '"Fira Code","Courier New",monospace',
-                    fontSize: 14, lineHeight: 1.6, tabSize: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                    background: 'transparent', color: 'transparent', caretColor: 'white',
-                    border: 'none', outline: 'none', resize: 'none', zIndex: 4, overflow: 'auto',
-                    letterSpacing: 'normal', boxSizing: 'border-box'
-                  }}
-                />
+                <textarea ref={textareaRef} value={code} onChange={handleCodeChange} onKeyDown={handleKeyDown} onScroll={handleScroll} spellCheck={false} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', margin: 0, padding: 16, fontFamily: 'monospace', fontSize: 14, lineHeight: 1.6, background: 'transparent', color: 'transparent', caretColor: 'white', border: 'none', outline: 'none', resize: 'none', zIndex: 4, overflow: 'auto' }} />
               </div>
             </div>
-            <div style={{ padding: '8px 14px', borderTop: '1px solid var(--theme-border, #2a2d3a)', display: 'flex', gap: 8 }}>
+            <div style={{ padding: '8px 14px', borderTop: '1px solid #2a2d3a', display: 'flex', gap: 8 }}>
               <button onClick={handleRun} style={{ ...styles.btn, background: 'linear-gradient(135deg, #004aad, #005cbf)' }}>▶ 실행</button>
               <button onClick={handleCheck} style={{ ...styles.btn, background: 'linear-gradient(135deg, #7c3aed, #cb6ce6)' }}>✓ 제출</button>
               <button onClick={handleReset} style={{ ...styles.btn, background: '#2a2d3a', color: '#8b8fa3' }}>↺ 초기화</button>
@@ -1150,44 +960,16 @@ export default function BattleArena() {
             </div>
           </div>
 
-          {/* 결과 영역 */}
-          <div style={{ background: 'var(--theme-surface, #1a1d27)', borderRadius: 14, border: '1px solid var(--theme-border, #2a2d3a)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--theme-border, #2a2d3a)' }}>
-              <span style={{ fontSize: 12, color: '#8b8fa3', fontWeight: 600 }}>실행 결과</span>
-            </div>
+          <div style={{ background: '#1a1d27', borderRadius: 14, border: '1px solid #2a2d3a', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '8px 14px', borderBottom: '1px solid #2a2d3a' }}><span style={{ fontSize: 12, color: '#8b8fa3', fontWeight: 600 }}>실행 결과</span></div>
             <div style={{ flex: 1, padding: 14, overflow: 'auto' }}>
-              {resultType === 'run' && output && (
-                <div style={{ padding: 12, borderRadius: 10, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--theme-border, #2a2d3a)' }}>
-                  <p style={{ color: output.startsWith('[E') ? '#f87171' : '#4ade80', fontFamily: 'monospace', fontSize: 14, whiteSpace: 'pre-wrap' }}>{output}</p>
-                </div>
-              )}
+              {resultType === 'run' && output && (<div style={{ padding: 12, borderRadius: 10, background: 'rgba(0,0,0,0.3)' }}><p style={{ color: '#4ade80', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{output}</p></div>)}
               {resultType === 'check' && isCorrect !== null && (
-                <div style={{
-                  padding: 20, borderRadius: 12, textAlign: 'center',
-                  background: isCorrect ? 'rgba(46,204,113,0.1)' : 'rgba(231,76,60,0.1)',
-                  border: `1px solid ${isCorrect ? 'rgba(46,204,113,0.3)' : 'rgba(231,76,60,0.3)'}`
-                }}>
+                <div style={{ padding: 20, borderRadius: 12, textAlign: 'center', background: isCorrect ? 'rgba(46,204,113,0.1)' : 'rgba(231,76,60,0.1)' }}>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>{isCorrect ? '🎉' : '❌'}</div>
-                  <p style={{ fontWeight: 800, fontSize: 18, color: isCorrect ? '#2ecc71' : '#e74c3c', fontFamily: "'Nunito', sans-serif" }}>
-                    {isCorrect ? '정답! -' + DAMAGE_PER_CORRECT + ' 데미지!' : '오답! 다시 시도하세요.'}
-                  </p>
-                  {isCorrect && <p style={{ color: '#8b8fa3', fontSize: 13, marginTop: 6 }}>다음 문제가 곧 나옵니다...</p>}
-                  {!isCorrect && output && (
-                    <p style={{ color: '#f87171', fontFamily: 'monospace', fontSize: 13, marginTop: 8 }}>{output}</p>
-                  )}
+                  <p style={{ fontWeight: 800, fontSize: 18, color: isCorrect ? '#2ecc71' : '#e74c3c' }}>{isCorrect ? `정답! -${DAMAGE_PER_CORRECT} 데미지!` : '오답! 다시 시도하세요.'}</p>
                 </div>
               )}
-              {!resultType && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#6b7280', fontSize: 14 }}>
-                  코드를 작성하고 실행하거나 제출하세요
-                </div>
-              )}
-            </div>
-            <div style={{ padding: '10px 14px', borderTop: '1px solid var(--theme-border, #2a2d3a)', fontSize: 12, color: '#6b7280' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>풀이: {problemCount}문제</span>
-                <span>데미지: {problemCount * DAMAGE_PER_CORRECT}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -1197,11 +979,11 @@ export default function BattleArena() {
         <div style={styles.modalOverlay}>
           <div style={styles.modalBox}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8, fontFamily: "'Nunito', sans-serif" }}>배틀 포기</h3>
-            <p style={{ color: 'var(--theme-secondary-text, #8b8fa3)', marginBottom: 20, fontSize: 14 }}>배틀에서 나가시면 패배 처리됩니다.</p>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>배틀 포기</h3>
+            <p style={{ color: '#8b8fa3', marginBottom: 20, fontSize: 14 }}>배틀에서 나가시면 패배 처리됩니다.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button onClick={() => { setShowLeaveModal(false); setExitConfirm(false); }} style={{ ...styles.btn, padding: '12px 24px', background: 'linear-gradient(135deg, #2ecc71, #27ae60)' }}>계속하기</button>
-              <button onClick={handleForfeitAndLeave} style={{ ...styles.btn, padding: '12px 24px', background: 'linear-gradient(135deg, #e74c3c, #c0392b)' }}>나가기 (패배)</button>
+              <button onClick={() => setShowLeaveModal(false)} style={{ ...styles.btn, background: 'linear-gradient(135deg, #2ecc71, #27ae60)' }}>계속하기</button>
+              <button onClick={handleForfeitAndLeave} style={{ ...styles.btn, background: 'linear-gradient(135deg, #e74c3c, #c0392b)' }}>나가기 (패배)</button>
             </div>
           </div>
         </div>
@@ -1210,42 +992,31 @@ export default function BattleArena() {
   );
 }
 
-/* ───────── 스타일 ───────── */
+/* ───────── 스타일 개체 (중복 선언 완전 제거) ───────── */
 const styles = {
   fullPage: {
     minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'var(--theme-bg, #0f1117)', color: 'var(--theme-text, #e2e8f0)'
+    backgroundColor: '#0f1117', color: '#e2e8f0'
   },
   countdownPlayer: {
-    padding: 20, background: 'var(--theme-surface, #1a1d27)', borderRadius: 16,
-    border: '1px solid var(--theme-border, #2a2d3a)', textAlign: 'center', minWidth: 140
+    padding: 20, background: '#1a1d27', borderRadius: 16, border: '1px solid #2a2d3a', textAlign: 'center', minWidth: 140
   },
   rankBadge: {
     display: 'inline-block', marginTop: 6, padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600
   },
   hpBarOuter: {
-    width: '100%', height: 14, borderRadius: 7,
-    background: 'rgba(255,255,255,0.06)', overflow: 'hidden',
-    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)'
+    width: '100%', height: 14, borderRadius: 7, background: 'rgba(255,255,255,0.06)', overflow: 'hidden'
   },
   hpBarInner: {
-    height: '100%', borderRadius: 7, transition: 'width 0.5s ease, background 0.5s ease',
-    boxShadow: '0 0 8px rgba(0,0,0,0.3)'
-  },
-  editorBase: {
-    margin: 0, padding: 16, fontFamily: '"Fira Code","Courier New",monospace', fontSize: 14,
-    lineHeight: 1.6, tabSize: 4, whiteSpace: 'pre-wrap', boxSizing: 'border-box', width: '100%', height: '100%'
+    height: '100%', borderRadius: 7, transition: 'width 0.5s ease, background 0.5s ease'
   },
   btn: {
-    padding: '7px 16px', borderRadius: 8, border: 'none', color: 'white',
-    fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'opacity 0.2s'
+    padding: '7px 16px', borderRadius: 8, border: 'none', color: 'white', fontWeight: 600, fontSize: 13, cursor: 'pointer'
   },
   modalOverlay: {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
   },
   modalBox: {
-    background: 'var(--theme-surface, #1a1d27)', padding: 30, borderRadius: 16,
-    border: '1px solid var(--theme-border, #2a2d3a)', maxWidth: 400, textAlign: 'center'
+    background: '#1a1d27', padding: 30, borderRadius: 16, border: '1px solid #2a2d3a', maxWidth: 400, textAlign: 'center'
   }
 };
