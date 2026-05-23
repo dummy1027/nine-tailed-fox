@@ -111,7 +111,6 @@ const simulateC = (code) => {
     return txt;
   };
 
-  // 변수 처리 줄별
   code.split('\n').forEach(line => {
     const trimmed = line.trim();
     const declMatch = trimmed.match(/^(?:int|float|double|char|long)\s+(\w+)\s*(?:=\s*(.+?))?\s*;$/);
@@ -129,7 +128,6 @@ const simulateC = (code) => {
     }
   });
 
-  // for 루프
   const forRe = /for\s*\(\s*int\s+(\w+)\s*=\s*(-?\d+)\s*;\s*(\w+)\s*([<>=!]+)\s*(-?\d+)\s*;\s*(\w+)\+\+\s*\)/g;
   let forMatch;
   let loopOutputs = [];
@@ -153,7 +151,6 @@ const simulateC = (code) => {
 
   if (loopOutputs.length > 0) return { ok: true, output: loopOutputs.join('') };
 
-  // if/else
   const ifRe = /if\s*\(\s*(.+?)\s*\)(?:\s*\{([^}]*)\})?\s*else\s*\{([^}]*)\}/g;
   let ifMatch;
   while ((ifMatch = ifRe.exec(code)) !== null) {
@@ -184,7 +181,6 @@ const simulateC = (code) => {
     }
   }
 
-  // 일반 printf
   const printfRe = /printf\s*\(\s*"((?:[^"\\]|\\.)*)"(?:,\s*([^)]+))?\s*\)/g;
   let pm;
   while ((pm = printfRe.exec(code)) !== null) {
@@ -205,12 +201,18 @@ export default function BattleArena() {
   const isDev = import.meta.env.DEV;
 
   const searchParams = new URLSearchParams(window.location.search);
-  const roomCode = searchParams.get('room');
-  const myRole = searchParams.get('mode'); // 'host' or 'guest'
+  
+  // 🚨 [새로고침 방어] F5 대응을 위해 sessionStorage 및 URL 파라미터 다중 검증 구조 적용
+  const [roomCode, setRoomCode] = useState(() => {
+    return searchParams.get('room') || sessionStorage.getItem('current_room_code') || '';
+  });
+  const [myRole, setMyRole] = useState(() => {
+    return searchParams.get('mode') || sessionStorage.getItem('current_room_role') || 'guest';
+  });
   const isPrivateBattle = !!roomCode;
 
   // 매칭 상태
-  const [phase, setPhase] = useState('matching'); // matching | countdown | battle | gameover
+  const [phase, setPhase] = useState('matching'); 
   const [matchTimer, setMatchTimer] = useState(MATCH_TIMEOUT_SEC);
   const [opponent, setOpponent] = useState(null);
   const [countdown, setCountdown] = useState(3);
@@ -226,7 +228,7 @@ export default function BattleArena() {
   const [resultType, setResultType] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [battleResult, setBattleResult] = useState(null); // 'win' | 'lose' | 'draw'
+  const [battleResult, setBattleResult] = useState(null); 
   const [ratingChange, setRatingChange] = useState(0);
   const [damageAnim, setDamageAnim] = useState({ my: false, opp: false });
   const [problemCount, setProblemCount] = useState(0);
@@ -244,6 +246,12 @@ export default function BattleArena() {
   const [suggestIndex, setSuggestIndex] = useState(0);
   const [showSuggest, setShowSuggest] = useState(false);
   const [suggestPos, setSuggestPos] = useState({ top: 0, left: 0 });
+
+  // 🚨 방 코드 및 역할 세션스토리지 자동 기록
+  useEffect(() => {
+    if (roomCode) sessionStorage.setItem('current_room_code', roomCode);
+    if (myRole) sessionStorage.setItem('current_room_role', myRole);
+  }, [roomCode, myRole]);
 
   const updateSuggestPos = (textBeforeCursor) => {
     if (!mirrorRef.current || !textareaRef.current) return;
@@ -276,9 +284,7 @@ export default function BattleArena() {
       }
     }, 0);
   };
-// ==================== [수리 완료] 여기서부터 통째로 덮어쓰세요 ====================
 
-  /* ─── 1. 기본 상태(Ref) 동기화 및 페이지 이탈 방지 ─── */
   useEffect(() => {
     myHpRef.current = myHp;
   }, [myHp]);
@@ -311,111 +317,14 @@ export default function BattleArena() {
     };
   }, [phase]);
 
-  /* ─── 2. 핵심 배틀 제어 함수들 (순서 꼬임 방지를 위해 최상단에 function 선언) ─── */
-  function triggerDamageAnim(who) {
-    setDamageAnim(prev => ({ ...prev, [who]: true }));
-    setTimeout(() => setDamageAnim(prev => ({ ...prev, [who]: false })), 600);
-  }
-
-  function getRatingDelta(result) {
-    if (result === 'win') return Math.floor(myHpRef.current / 2);
-    if (result === 'lose') return -(MAX_HP - myHpRef.current);
-    return 0;
-  }
-
-  const applyRatingChange = useCallback(async (change) => {
-    if (!user || isDev || change === 0) return;
-    const currentRating = profile?.rating ?? 0;
-    const newRating = Math.max(0, currentRating + change);
-    const { data, error } = await supabase.from('profiles').update({ rating: newRating }).eq('id', user.id).select('rating').maybeSingle();
-    if (!error && data && setProfile) {
-      setProfile(prev => prev ? { ...prev, rating: data.rating } : prev);
-    }
-  }, [user, isDev, profile, setProfile]);
-
-  const finalizeBattle = useCallback(async (result) => {
-    if (battleEndedRef.current) return;
-    battleEndedRef.current = true;
-    setPhase('gameover');
-    setBattleResult(result);
-    const delta = getRatingDelta(result);
-    setRatingChange(delta);
-    await applyRatingChange(delta);
-  }, [applyRatingChange]);
-
-  function startBotMatch() {
-    const botNames = ['CodeNinja', 'ByteMaster', 'SyntaxSage', 'AlgoKing', 'BitWizard', 'CompileBot', 'StackHero'];
-    const botScore = Math.floor(Math.random() * 800) + 100;
-    setOpponent({
-      username: botNames[Math.floor(Math.random() * botNames.length)],
-      score: botScore,
-      rank_title: getRank(botScore),
-      isBot: true
-    });
-    setPhase('countdown');
-  }
-
-  async function fetchOpponent(roomId) {
-    const { data } = await supabase
-      .from('battle_queue')
-      .select('*')
-      .eq('room_id', roomId)
-      .neq('user_id', user.id)
-      .maybeSingle();
-    if (data) {
-      setOpponent({
-        username: data.username,
-        score: data.score,
-        rank_title: getRank(data.score),
-        isBot: false,
-        userId: data.user_id
-      });
-      setPhase('countdown');
-      subscribeToRoom(roomId);
-    }
-  }
-
-  function subscribeToRoom(roomId) {
-    const ch = supabase.channel(`battle_${roomId}`)
-      .on('broadcast', { event: 'damage' }, (payload) => {
-        // 상대방이 문제를 맞췄을 때 나에게 실시간 데미지 적용
-        if (payload.payload.from !== user?.id) {
-          
-          // 1. 내 체력 깎기
-          setMyHp(prev => {
-            const next = Math.max(0, prev - payload.payload.amount);
-            triggerDamageAnim('my');
-            if (next <= 0) {
-              finalizeBattle('lose');
-            }
-            return next;
-          });
-
-          // 2. 🚨 [추가 추천] 내 화면에 표시되는 상대방 체력도 동기화
-          // 만약 기존 handleCheck 등에서 oppHp 관리가 꼬였다면 이 한 줄이 완벽하게 맞춰줍니다.
-          // (필요에 따라 켜고 끄실 수 있지만 실시간 동기화에 안전합니다)
-        }
-      })
-      .on('broadcast', { event: 'gameover' }, (payload) => {
-        if (payload.payload.winner !== user?.id) {
-          setPhase('gameover');
-          setBattleResult('lose');
-        }
-      })
-      .subscribe((status) => {
-        // 연결이 제대로 됬는지 개발자 도구(F12) 콘솔창에서 확인할 수 있습니다.
-        if (status === 'SUBSCRIBED') {
-          console.log("실시간 배틀 채널 연결 성공!");
-        }
-      });
-    channelRef.current = ch;
-  }
-
-  /* ─── 3. Supabase Realtime 매칭 및 타이머 이펙트 ─── */
+  /* ─── Supabase Realtime 매칭 ─── */
   useEffect(() => {
     if (phase !== 'matching') return;
 
     if (isPrivateBattle) {
+      // 🚨 사설 방 정보 불러오고 구독 즉시 활성화
+      subscribeToRoom(roomCode);
+
       const fetchRoomData = async () => {
         const { data } = await supabase
           .from('rooms')
@@ -532,9 +441,85 @@ export default function BattleArena() {
         supabase.from('battle_queue').delete().eq('user_id', user.id).eq('status', 'waiting');
       }
     };
+    // eslint-disable-next-line
   }, [phase, user, isDev, isPrivateBattle, roomCode, myRole]);
 
-  /* ─── 4. 게임 상태 제어 타이머 이펙트 ─── */
+  const fetchOpponent = async (roomId) => {
+    const { data } = await supabase
+      .from('battle_queue')
+      .select('*')
+      .eq('room_id', roomId)
+      .neq('user_id', user.id)
+      .maybeSingle();
+    if (data) {
+      setOpponent({
+        username: data.username,
+        score: data.score,
+        rank_title: getRank(data.score),
+        isBot: false,
+        userId: data.user_id
+      });
+      setPhase('countdown');
+      subscribeToRoom(roomId);
+    }
+  };
+
+  // 🚨 [실시간 수신 핵심 수리] 나뿐만 아니라 내 화면의 상대 피도 정확히 연동되게 제어
+  const subscribeToRoom = (roomId) => {
+    console.log("⚔️ 배틀 채널 연결 시작, 방 ID:", roomId);
+    if (channelRef.current) supabase.removeChannel(channelRef.current);
+
+    const ch = supabase.channel(`battle_${roomId}`)
+      .on('broadcast', { event: 'damage' }, (payload) => {
+        console.log("💥 실시간 데미지 신호 도착:", payload);
+        
+        // 신호를 보낸 사람이 상대방인 경우 처리
+        if (payload.payload.from !== user?.id) {
+          // 1. 내 체력 차감
+          setMyHp(prev => {
+            const next = Math.max(0, prev - payload.payload.amount);
+            triggerDamageAnim('my');
+            if (next <= 0) {
+              const result = oppHpRef.current <= 0 ? 'draw' : 'lose';
+              finalizeBattle(result);
+            }
+            return next;
+          });
+
+          // 2. 🚨 [연동 핵심] 상대방 화면에서 내가 맞춘 기댓값이므로 내 화면의 '상대방 피'도 강제 차감 동기화!
+          setOppHp(prev => Math.max(0, prev - payload.payload.amount));
+          triggerDamageAnim('opp');
+        }
+      })
+      .on('broadcast', { event: 'gameover' }, (payload) => {
+        console.log("🏁 게임오버 신호 감지:", payload);
+        if (payload.payload.winner !== user?.id) {
+          setPhase('gameover');
+          setBattleResult('lose');
+        }
+      });
+
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log("✅ 실시간 배틀 연동 채널 구독 완전 성공!");
+      }
+    });
+    channelRef.current = ch;
+  };
+
+  const startBotMatch = () => {
+    const botNames = ['CodeNinja', 'ByteMaster', 'SyntaxSage', 'AlgoKing', 'BitWizard', 'CompileBot', 'StackHero'];
+    const botScore = Math.floor(Math.random() * 800) + 100;
+    setOpponent({
+      username: botNames[Math.floor(Math.random() * botNames.length)],
+      score: botScore,
+      rank_title: getRank(botScore),
+      isBot: true
+    });
+    setPhase('countdown');
+  };
+
+  /* ─── 카운트다운 ─── */
   useEffect(() => {
     if (phase !== 'countdown') return;
     if (countdown <= 0) {
@@ -548,6 +533,7 @@ export default function BattleArena() {
     return () => clearTimeout(t);
   }, [phase, countdown]);
 
+  /* ─── 배틀 타이머 ─── */
   useEffect(() => {
     if (phase !== 'battle') return;
     const iv = setInterval(() => {
@@ -564,10 +550,11 @@ export default function BattleArena() {
     return () => clearInterval(iv);
   }, [phase, finalizeBattle]);
 
+  /* ─── 봇 자동 풀이 (랜덤 타이밍) ─── */
   useEffect(() => {
     if (phase !== 'battle' || !opponent?.isBot) return;
     const scheduleBotSolve = () => {
-      const delay = (Math.random() * 25 + 15) * 1000;
+      const delay = (Math.random() * 25 + 15) * 1000; 
       oppBotTimerRef.current = setTimeout(() => {
         setMyHp(prev => {
           const next = Math.max(0, prev - DAMAGE_PER_CORRECT);
@@ -583,19 +570,42 @@ export default function BattleArena() {
     };
     scheduleBotSolve();
     return () => clearTimeout(oppBotTimerRef.current);
+    // eslint-disable-next-line
   }, [phase, opponent]);
 
-  useEffect(() => {
-    if (phase !== 'matching') return;
-    if (matchTimer <= 0) {
-      startBotMatch();
-      return;
-    }
-    const timer = setTimeout(() => setMatchTimer(prev => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [phase, matchTimer, opponent]);
+  /* ─── 데미지 애니메이션 ─── */
+  const triggerDamageAnim = (who) => {
+    setDamageAnim(prev => ({ ...prev, [who]: true }));
+    setTimeout(() => setDamageAnim(prev => ({ ...prev, [who]: false })), 600);
+  };
 
-  /* ─── 5. 채점 및 포기/이탈 핸들러 ─── */
+  const getRatingDelta = (result) => {
+    if (result === 'win') return Math.floor(myHpRef.current / 2);
+    if (result === 'lose') return -(MAX_HP - myHpRef.current);
+    return 0;
+  };
+
+  const applyRatingChange = useCallback(async (change) => {
+    if (!user || isDev || change === 0) return;
+    const currentRating = profile?.rating ?? 0;
+    const newRating = Math.max(0, currentRating + change);
+    const { data, error } = await supabase.from('profiles').update({ rating: newRating }).eq('id', user.id).select('rating').maybeSingle();
+    if (!error && data && setProfile) {
+      setProfile(prev => prev ? { ...prev, rating: data.rating } : prev);
+    }
+  }, [user, isDev, profile, setProfile]);
+
+  const finalizeBattle = useCallback(async (result) => {
+    if (battleEndedRef.current) return;
+    battleEndedRef.current = true;
+    setPhase('gameover');
+    setBattleResult(result);
+    const delta = getRatingDelta(result);
+    setRatingChange(delta);
+    await applyRatingChange(delta);
+  }, [applyRatingChange]);
+
+  /* ─── 채점 ─── */
   const handleRun = () => {
     setResultType('run');
     const result = simulateC(code);
@@ -603,6 +613,7 @@ export default function BattleArena() {
     setIsCorrect(null);
   };
 
+  // 🚨 [송신 핵심 수리] 내가 정답을 제출했을 때 상대방에게 실시간 브로드캐스트가 확실히 꽂히게 정비
   const handleCheck = async () => {
     if (!problem) return;
     if (isCorrect === true) return;
@@ -624,6 +635,18 @@ export default function BattleArena() {
       triggerDamageAnim('opp');
       setOppHp(newOppHp);
 
+      // 🚨 [실시간 타격 전송] 상대방 화면 브라우저로 35데미지 실시간 타격 발송!
+      if (channelRef.current) {
+        console.log("🚀 상대방 저격 성공! 데미지 쏴줍니다.");
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'damage',
+          payload: { from: user?.id, amount: DAMAGE_PER_CORRECT }
+        });
+      } else {
+        console.error("❌ 오류: channelRef 가 비어있어 전송에 실패했습니다.");
+      }
+
       if (newOppHp <= 0) {
         const result = myHpRef.current <= 0 ? 'draw' : 'win';
         await finalizeBattle(result);
@@ -631,10 +654,6 @@ export default function BattleArena() {
           channelRef.current.send({ type: 'broadcast', event: 'gameover', payload: { winner: user?.id } });
         }
         return;
-      }
-
-      if (channelRef.current) {
-        channelRef.current.send({ type: 'broadcast', event: 'damage', payload: { from: user?.id, amount: DAMAGE_PER_CORRECT } });
       }
 
       setResultType(null);
@@ -658,6 +677,7 @@ export default function BattleArena() {
     setResultType(null);
   };
 
+  /* ─── 나가기 ─── */
   const handleLeaveBattle = useCallback(async (confirmed = false) => {
     if (phase === 'battle' && !confirmed) {
       clearTimeout(oppBotTimerRef.current);
@@ -695,7 +715,38 @@ export default function BattleArena() {
     }
   };
 
-// ==================== [수리 완료] 여기까지 통째로 덮어쓰세요 ====================
+  useEffect(() => {
+    if (phase !== 'battle') return;
+    const h = (e) => {
+      e.preventDefault();
+      e.returnValue = '배틀 중입니다. 정말 나가시겠습니까?';
+    };
+    const handlePopState = () => {
+      if (phase === 'battle') {
+        window.history.pushState(null, '', window.location.href);
+        setShowLeaveModal(true);
+      }
+    };
+
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('beforeunload', h);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', h);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'matching') return;
+    if (matchTimer <= 0) {
+      startBotMatch();
+      return;
+    }
+    const timer = setTimeout(() => setMatchTimer(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phase, matchTimer, opponent]);
 
   /* ─── 에디터 키 핸들러 ─── */
   const handleKeyDown = (e) => {
@@ -763,7 +814,6 @@ export default function BattleArena() {
 
   /* ═══════════════════ RENDER ═══════════════════ */
 
-  // ─── 매칭 중 ───
   if (phase === 'matching') {
     return (
       <div style={styles.fullPage}>
@@ -778,7 +828,6 @@ export default function BattleArena() {
           @keyframes dotPulse { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
         `}</style>
         <div style={{ textAlign: 'center' }}>
-          {/* 펄스 링 */}
           <div style={{ position: 'relative', width: 120, height: 120, margin: '0 auto 40px' }}>
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(203,108,230,0.3)', animation: 'pulse-ring 2s ease-out infinite' }} />
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(203,108,230,0.3)', animation: 'pulse-ring 2s ease-out infinite 0.5s' }} />
@@ -819,7 +868,6 @@ export default function BattleArena() {
     );
   }
 
-  // ─── 카운트다운 ───
   if (phase === 'countdown') {
     return (
       <div style={styles.fullPage}>
@@ -860,7 +908,6 @@ export default function BattleArena() {
     );
   }
 
-  // ─── 게임 오버 ───
   if (phase === 'gameover') {
     const isWin = battleResult === 'win';
     const isDraw = battleResult === 'draw';
@@ -919,7 +966,6 @@ export default function BattleArena() {
     );
   }
 
-  // ─── 배틀 메인 ───
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--theme-bg, #0f1117)', color: 'var(--theme-text, #e2e8f0)', padding: '70px 16px 16px' }}>
       <style>{`
@@ -1025,7 +1071,6 @@ export default function BattleArena() {
               </div>
             </div>
             <div style={{ position: 'relative', height: 320, overflow: 'hidden', display: 'flex', alignItems: 'stretch' }}>
-              {/* Line Numbers */}
               <div style={{
                 width: 45, height: '100%', background: '#0d0d0e', color: '#4b4b4d',
                 fontFamily: '"Fira Code","Courier New",monospace', fontSize: 14, lineHeight: 1.6,
@@ -1037,9 +1082,7 @@ export default function BattleArena() {
                 ))}
               </div>
 
-              {/* Editor area */}
               <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-                {/* Mirror for autocomplete position */}
                 <div ref={mirrorRef} style={{
                   position: 'absolute', top: 0, left: 0, padding: 16,
                   fontFamily: '"Fira Code","Courier New",monospace', fontSize: 14, lineHeight: 1.6,
@@ -1047,7 +1090,6 @@ export default function BattleArena() {
                   zIndex: -1, pointerEvents: 'none', letterSpacing: 'normal', tabSize: 4
                 }} />
 
-                {/* Autocomplete suggestions */}
                 {showSuggest && (
                   <div style={{
                     position: 'absolute', top: suggestPos.top, left: suggestPos.left,
@@ -1067,7 +1109,6 @@ export default function BattleArena() {
                   </div>
                 )}
 
-                {/* Syntax highlight layer */}
                 <pre ref={preRef} style={{
                   position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                   margin: 0, padding: 16, fontFamily: '"Fira Code","Courier New",monospace',
@@ -1078,7 +1119,6 @@ export default function BattleArena() {
                   {highlightCode(code).map((tk, i) => <span key={i} style={{ color: tokenColor[tk.t] || '#e2e8f0' }}>{tk.v}</span>)}
                 </pre>
 
-                {/* Actual textarea */}
                 <textarea
                   ref={textareaRef}
                   value={code}
@@ -1138,7 +1178,6 @@ export default function BattleArena() {
                 </div>
               )}
             </div>
-            {/* 배틀 로그 */}
             <div style={{ padding: '10px 14px', borderTop: '1px solid var(--theme-border, #2a2d3a)', fontSize: 12, color: '#6b7280' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>풀이: {problemCount}문제</span>
@@ -1149,7 +1188,6 @@ export default function BattleArena() {
         </div>
       </div>
 
-      {/* 나가기 모달 */}
       {showLeaveModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalBox}>
