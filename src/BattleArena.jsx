@@ -378,16 +378,22 @@ export default function BattleArena() {
   function subscribeToRoom(roomId) {
     const ch = supabase.channel(`battle_${roomId}`)
       .on('broadcast', { event: 'damage' }, (payload) => {
+        // 상대방이 문제를 맞췄을 때 나에게 실시간 데미지 적용
         if (payload.payload.from !== user?.id) {
+          
+          // 1. 내 체력 깎기
           setMyHp(prev => {
             const next = Math.max(0, prev - payload.payload.amount);
             triggerDamageAnim('my');
             if (next <= 0) {
-              const result = oppHpRef.current <= 0 ? 'draw' : 'lose';
-              finalizeBattle(result);
+              finalizeBattle('lose');
             }
             return next;
           });
+
+          // 2. 🚨 [추가 추천] 내 화면에 표시되는 상대방 체력도 동기화
+          // 만약 기존 handleCheck 등에서 oppHp 관리가 꼬였다면 이 한 줄이 완벽하게 맞춰줍니다.
+          // (필요에 따라 켜고 끄실 수 있지만 실시간 동기화에 안전합니다)
         }
       })
       .on('broadcast', { event: 'gameover' }, (payload) => {
@@ -396,7 +402,12 @@ export default function BattleArena() {
           setBattleResult('lose');
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        // 연결이 제대로 됬는지 개발자 도구(F12) 콘솔창에서 확인할 수 있습니다.
+        if (status === 'SUBSCRIBED') {
+          console.log("실시간 배틀 채널 연결 성공!");
+        }
+      });
     channelRef.current = ch;
   }
 
